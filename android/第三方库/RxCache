@@ -1,0 +1,7 @@
+一.类和接口说明:
+1.Persistence 持久化接口 -> Disk 磁盘持久化实现
+2.Memory 内存缓存接口 -> ReferenceMapMemory 内存缓存实现
+3.Action 抽象操作接口
+-> RetrieveRecord 检索操作实现，负责从内存中或磁盘中检索数据
+
+4.
