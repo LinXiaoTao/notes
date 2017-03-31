@@ -1,3 +1,7 @@
+**这篇文章主要参考了[官方文档](https://github.com/google/flexbox-layout)和阮老师的[Flex 布局教程：语法篇](http://www.ruanyifeng.com/blog/2015/07/flex-grammar.html)**
+
+[github地址](https://github.com/LinXiaoTao/FlexboxExample)
+
 ### 简介
 
 最近Google开源了一个叫[flex-box](https://github.com/google/flexbox-layout)的库，它的思路是参照的**CSS的Flex布局**设计的，所以属性基本都是和CSS上的Flex布局保持一致，但因为是两个不同的平台，所以减少了几个不适用于Android的属性，新增了几个属性，具体我们下面会说到。
@@ -141,6 +145,40 @@
 
   **个人理解，注意：要设置`flexWrap:nowrap`为单行**
 
-* ​
+* **layout_alignSelf**
 
-  ​
+  该属性允许单个项目与其他项目不一样的基于交叉轴的对齐方式。默认值为`auto`，即按照容器的`alignItems`属性，设置其他值，则会覆盖容器的值，可选的值：
+
+  1. auto 默认值
+  2. flex_start 
+  3. flex_end
+  4. center
+  5. baseline
+  6. stretch
+
+* **layout_flexBasisPercent** (fraction)
+
+  这个属性设置项目长度相对于容器的百分比，如果设置了这个值，则从`layout_width`或`layout_height`指定的长度会被覆盖，需要注意的是，这个属性只在容器长度确定的情况下有效，即`MeasureSpec.EXACTLY`。默认值为`-1`，表示不设置。
+
+* **layout_minWidth** / **layout_minHeight** (dimension)
+
+* **layout_maxWidth** / **layout_maxHeight** (dimension)
+
+  这些属性设置对项目的最大最小限制
+
+* **layout_wrapBefore** (boolean)
+
+  这个属性默认值为`false`，如果设置为`true`，则该项目将强制成为当前行的第一个项目，会忽略`flex_wrap:nowrap`设置。
+
+### 应用实例
+
+1. 底部按钮
+
+   ![img](https://github.com/LinXiaoTao/notes/blob/master/blog/img/flexbox-layout_fixbottom.png)
+
+2. 流式布局
+
+   ![img](https://github.com/LinXiaoTao/notes/blob/master/blog/img/flexbox-layout_flowlayout.png)
+
+TODO
+
