@@ -66,6 +66,10 @@
 
   关于`space_between `和`space_around `的样式如下：
 
+  ![img](https://github.com/LinXiaoTao/notes/blob/master/blog/img/flexbox-layout_space_between.png)
+
+  ![img](https://github.com/LinXiaoTao/notes/blob/master/blog/img/flexbox-layout_space_around.png)
+
 * **alignItems**
 
   这个属性定义项目在交叉轴上的对齐方式，可选的值有：
@@ -79,6 +83,10 @@
   5. baseline 项目的第一行文字的基线对齐
 
   关于`stretch  `和`baseline  `的样式如下：
+
+  ![img](https://github.com/LinXiaoTao/notes/blob/master/blog/img/flexbox-layout_stretch.png)
+
+  ![img](https://github.com/LinXiaoTao/notes/blob/master/blog/img/flexbox-layout_baseline.png)
 
 * **alignContent**
 
@@ -119,7 +127,11 @@
 
   这个属性定义项目基于当前行的放大比例，默认值为`0`。这个属性类似`LinearLayout`中的`layout_weight`属性，如果当前行只有一个项目的`layout_flexGrow`为正值，则该项目将占满当前行剩余的空间，下面的效果是三个相同大小的项目，其中一个`layout_flexGrow`为正值的效果：
 
+  ![img](https://github.com/LinXiaoTao/notes/blob/master/blog/img/flexbox-layout_layout_flexGrow1.png)
+
   如果存在多个`layout_flexGrow`为正值的情况，则这几个项目则会按设置的值为比例占用当前行剩余的空间，下面的效果是三个相同大小的项目，其中两个项目设置`layout_flexGrow:1`的效果：
+
+  ![img](https://github.com/LinXiaoTao/notes/blob/master/blog/img/flexbox-layout_layout_flexGrow2.png)
 
 * **layout_flexShrink** (float)
 
