@@ -331,7 +331,7 @@ protected ViewGroup generateLayout(DecorView decor) {
 
         // Non-floating windows on high end devices must put up decor beneath the system bars and
         // therefore must know about visibility changes of those.
-  		//高端设备上的非浮动窗口必须在系统栏下方放置装饰
+  		//高端设备(是否可以开启硬件加速)上的非浮动窗口必须在系统栏下方放置装饰
         if (!mIsFloating && ActivityManager.isHighEndGfx()) {
             if (!targetPreL && a.getBoolean(
                     R.styleable.Window_windowDrawsSystemBarBackgrounds,
