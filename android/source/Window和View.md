@@ -234,26 +234,35 @@ protected ViewGroup generateLayout(DecorView decor) {
         }
 		
   		//根据style设置window属性
+  		
         if (a.getBoolean(R.styleable.Window_windowNoTitle, false)) {
+          //没有标题
             requestFeature(FEATURE_NO_TITLE);
         } else if (a.getBoolean(R.styleable.Window_windowActionBar, false)) {
             // Don't allow an action bar if there is no title.
+          	//使用ActionBar
             requestFeature(FEATURE_ACTION_BAR);
         }
 
         if (a.getBoolean(R.styleable.Window_windowActionBarOverlay, false)) {
+          	//允许ActionBar覆盖window内容，默认ActionBar放置在window之上
+          	//当存在Action Bar时候，允许内容出现在Action Bar下面
             requestFeature(FEATURE_ACTION_BAR_OVERLAY);
         }
 
         if (a.getBoolean(R.styleable.Window_windowActionModeOverlay, false)) {
+          	//当不存在Action Bar时，用于指定Action Mode(上下文菜单)的行为。
+          	//如果设置true，则允许Action Mode覆盖window内容，不会因为不存在Action Bar而引起的界面抖动
             requestFeature(FEATURE_ACTION_MODE_OVERLAY);
         }
 
         if (a.getBoolean(R.styleable.Window_windowSwipeToDismiss, false)) {
+          	//滑动关闭
             requestFeature(FEATURE_SWIPE_TO_DISMISS);
         }
 
         if (a.getBoolean(R.styleable.Window_windowFullscreen, false)) {
+          	//全屏
             setFlags(FLAG_FULLSCREEN, FLAG_FULLSCREEN & (~getForcedWindowFlags()));
         }
 
