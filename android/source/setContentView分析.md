@@ -145,7 +145,7 @@ private void installDecor() {
             }
 
             if (mDecor.getBackground() == null && mBackgroundFallbackResource != 0) {
-              //预先设置DecorView的背景
+              //Android N当窗口调整的时候，会使用mBackgroundFallbackResource暂时填充
                 mDecor.setBackgroundFallback(mBackgroundFallbackResource);
             }
 
@@ -268,32 +268,41 @@ protected ViewGroup generateLayout(DecorView decor) {
 
         if (a.getBoolean(R.styleable.Window_windowTranslucentStatus,
                 false)) {
+          	//透明状态栏
             setFlags(FLAG_TRANSLUCENT_STATUS, FLAG_TRANSLUCENT_STATUS
                     & (~getForcedWindowFlags()));
         }
 
         if (a.getBoolean(R.styleable.Window_windowTranslucentNavigation,
                 false)) {
+          	//透明导航栏
             setFlags(FLAG_TRANSLUCENT_NAVIGATION, FLAG_TRANSLUCENT_NAVIGATION
                     & (~getForcedWindowFlags()));
         }
 
         if (a.getBoolean(R.styleable.Window_windowOverscan, false)) {
+          	//让window占满整个手机屏幕，不留任何边界
             setFlags(FLAG_LAYOUT_IN_OVERSCAN, FLAG_LAYOUT_IN_OVERSCAN&(~getForcedWindowFlags()));
         }
 
         if (a.getBoolean(R.styleable.Window_windowShowWallpaper, false)) {
+          	//在该window后显示系统的墙纸
             setFlags(FLAG_SHOW_WALLPAPER, FLAG_SHOW_WALLPAPER&(~getForcedWindowFlags()));
         }
 
         if (a.getBoolean(R.styleable.Window_windowEnableSplitTouch,
                 getContext().getApplicationInfo().targetSdkVersion
                         >= android.os.Build.VERSION_CODES.HONEYCOMB)) {
+          	//窗口多指触摸
             setFlags(FLAG_SPLIT_TOUCH, FLAG_SPLIT_TOUCH&(~getForcedWindowFlags()));
         }
-
+		
+  		//窗口在横屏的最小宽度
         a.getValue(R.styleable.Window_windowMinWidthMajor, mMinWidthMajor);
+  		//窗口在竖屏的最小宽度
         a.getValue(R.styleable.Window_windowMinWidthMinor, mMinWidthMinor);
+  		
+  		//窗口固定尺寸
         if (a.hasValue(R.styleable.Window_windowFixedWidthMajor)) {
             if (mFixedWidthMajor == null) mFixedWidthMajor = new TypedValue();
             a.getValue(R.styleable.Window_windowFixedWidthMajor,
@@ -314,9 +323,12 @@ protected ViewGroup generateLayout(DecorView decor) {
             a.getValue(R.styleable.Window_windowFixedHeightMinor,
                     mFixedHeightMinor);
         }
+  
+  		//窗口内容转场动画
         if (a.getBoolean(R.styleable.Window_windowContentTransitions, false)) {
             requestFeature(FEATURE_CONTENT_TRANSITIONS);
         }
+  		//启用Activity的转场动画
         if (a.getBoolean(R.styleable.Window_windowActivityTransitions, false)) {
             requestFeature(FEATURE_ACTIVITY_TRANSITIONS);
         }
@@ -345,24 +357,29 @@ protected ViewGroup generateLayout(DecorView decor) {
             if (!targetPreL && a.getBoolean(
                     R.styleable.Window_windowDrawsSystemBarBackgrounds,
                     false)) {
-              	//是否允许在21以上，且需要自定义绘制 系统状态栏背景颜色
+              	//是否允许在21以上，且需要自定义绘制系统状态栏背景
                 setFlags(FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS,
                         FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS & ~getForcedWindowFlags());
             }
         }
+  		//设置状态栏的操作，都需设置windowLightStatusBar:true
         if (!mForcedStatusBarColor) {
+          	//不调用setStatusBarColor的话，从style里面读取状态栏颜色
             mStatusBarColor = a.getColor(R.styleable.Window_statusBarColor, 0xFF000000);
         }
         if (!mForcedNavigationBarColor) {
+          	//不调用setNavigationBarColor，从style里面读取导航栏颜色
             mNavigationBarColor = a.getColor(R.styleable.Window_navigationBarColor, 0xFF000000);
         }
         if (a.getBoolean(R.styleable.Window_windowLightStatusBar, false)) {
+          	//默认高亮状态栏
             decor.setSystemUiVisibility(
                     decor.getSystemUiVisibility() | View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
         }
 
         if (mAlwaysReadCloseOnTouchAttr || getContext().getApplicationInfo().targetSdkVersion
                 >= android.os.Build.VERSION_CODES.HONEYCOMB) {
+          	//点击窗口之外的区域是否关闭
             if (a.getBoolean(
                     R.styleable.Window_windowCloseOnTouchOutside,
                     false)) {
@@ -373,6 +390,8 @@ protected ViewGroup generateLayout(DecorView decor) {
         WindowManager.LayoutParams params = getAttributes();
 
         if (!hasSoftInputMode()) {
+          	//没有自定义软键盘模式
+          	//获取软键盘模式
             params.softInputMode = a.getInt(
                     R.styleable.Window_windowSoftInputMode,
                     params.softInputMode);
@@ -380,17 +399,21 @@ protected ViewGroup generateLayout(DecorView decor) {
 
         if (a.getBoolean(R.styleable.Window_backgroundDimEnabled,
                 mIsFloating)) {
+          	//窗口变暗
             /* All dialogs should have the window dimmed */
+          	//所有对话框都应该有窗口变暗
             if ((getForcedWindowFlags()&WindowManager.LayoutParams.FLAG_DIM_BEHIND) == 0) {
                 params.flags |= WindowManager.LayoutParams.FLAG_DIM_BEHIND;
             }
             if (!haveDimAmount()) {
+              	//变暗的程度
                 params.dimAmount = a.getFloat(
                         android.R.styleable.Window_backgroundDimAmount, 0.5f);
             }
         }
 
         if (params.windowAnimations == 0) {
+          	//
             params.windowAnimations = a.getResourceId(
                     R.styleable.Window_windowAnimationStyle, 0);
         }
@@ -400,12 +423,15 @@ protected ViewGroup generateLayout(DecorView decor) {
         if (getContainer() == null) {
             if (mBackgroundDrawable == null) {
                 if (mBackgroundResource == 0) {
+                  	//窗口背景
                     mBackgroundResource = a.getResourceId(
                             R.styleable.Window_windowBackground, 0);
                 }
                 if (mFrameResource == 0) {
+                  	//窗口边框
                     mFrameResource = a.getResourceId(R.styleable.Window_windowFrame, 0);
                 }
+              	//Android N当窗口调整的时候，会使用mBackgroundFallbackResource暂时填充
                 mBackgroundFallbackResource = a.getResourceId(
                         R.styleable.Window_windowBackgroundFallback, 0);
                 if (false) {
@@ -414,13 +440,17 @@ protected ViewGroup generateLayout(DecorView decor) {
                             + Integer.toHexString(mFrameResource));
                 }
             }
+          	//窗口阴影
             mElevation = a.getDimension(R.styleable.Window_windowElevation, 0);
+          	//是否裁剪轮廓
             mClipToOutline = a.getBoolean(R.styleable.Window_windowClipToOutline, false);
+          	//窗口文字颜色
             mTextColor = a.getColor(R.styleable.Window_textColor, Color.TRANSPARENT);
         }
 
         // Inflate the window decor.
-
+		
+  		//根据样式inflate不同的布局文件
         int layoutResource;
         int features = getLocalFeatures();
         // System.out.println("Features: 0x" + Integer.toHexString(features));
@@ -491,14 +521,16 @@ protected ViewGroup generateLayout(DecorView decor) {
         if (contentParent == null) {
             throw new RuntimeException("Window couldn't find content container view");
         }
-
+		
+  		//进度条
         if ((features & (1 << FEATURE_INDETERMINATE_PROGRESS)) != 0) {
             ProgressBar progress = getCircularProgressBar(false);
             if (progress != null) {
                 progress.setIndeterminate(true);
             }
         }
-
+		
+  		//滑动关闭窗口
         if ((features & (1 << FEATURE_SWIPE_TO_DISMISS)) != 0) {
             registerSwipeCallbacks();
         }
@@ -508,6 +540,7 @@ protected ViewGroup generateLayout(DecorView decor) {
         if (getContainer() == null) {
             final Drawable background;
             if (mBackgroundResource != 0) {
+              	//获取mBackgroundResource对应的Drawable
                 background = getContext().getDrawable(mBackgroundResource);
             } else {
                 background = mBackgroundDrawable;
@@ -516,6 +549,7 @@ protected ViewGroup generateLayout(DecorView decor) {
 
             final Drawable frame;
             if (mFrameResource != 0) {
+              //获取mFrameResource对应的Drawable
                 frame = getContext().getDrawable(mFrameResource);
             } else {
                 frame = null;
@@ -526,10 +560,12 @@ protected ViewGroup generateLayout(DecorView decor) {
             mDecor.setClipToOutline(mClipToOutline);
 
             if (mTitle != null) {
+              	//设置标题
                 setTitle(mTitle);
             }
 
             if (mTitleColor == 0) {
+              	//设置标题颜色
                 mTitleColor = mTextColor;
             }
             setTitleColor(mTitleColor);
