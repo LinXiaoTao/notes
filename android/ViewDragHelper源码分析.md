@@ -580,6 +580,5 @@ public abstract static class Callback {
             return 0;
         }
     }
-
 ```
 
