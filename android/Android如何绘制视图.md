@@ -1,3 +1,5 @@
+[参考](https://developer.android.com/guide/topics/ui/how-android-draws.html)
+
 当 `Activity` 获取到焦点时，它将请求绘制布局。Android framework 将处理绘制程序，但 `Activity` 必须提供布局层次的根结点。
 
 绘制开始于布局的根节点，要求测量 (measure) 和绘制 (draw) 布局树。绘制程序是通过遍历整个树，并渲染 `View` 中每个被标记为无效 (invalid) 的区域。每个 `ViewGroup` 负责请求它的每个子 `View` 进行绘制 (`draw()`)，每一个 `View` 负责绘制它自己。因为树势按顺序进行遍历，这意味着父 `View` 将在它们的子 `View` 之前被绘制(处于更后方)。同级的将按照它们在树中的出现顺序绘制。
