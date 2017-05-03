@@ -8,7 +8,7 @@
 
    * Class 文件
 
-     采用**驼峰命名法*。对于继承 Android 组件的类应该以组件名结尾。
+     采用**驼峰命名法**。对于继承 Android 组件的类应该以组件名结尾。
 
      例如：
 
@@ -31,8 +31,7 @@
      | Tabs         | `tab_`          |
      | Notification | `notification_` |
 
-
-*    图标的命名
+   * 图标的命名
 
      | 类型                              | 前缀               |
      | :------------------------------ | ---------------- |
@@ -43,8 +42,7 @@
      | Tab icons                       | `ic_tab`         |
      | Dialog icons                    | `ic_dialog`      |
 
-
-*    选择器状态文件的命名
+   * 选择器状态文件的命名
 
      | 状态       | 后缀          |
      | -------- | ----------- |
@@ -54,11 +52,11 @@
      | Disabled | `_disabled` |
      | Selected | `_selected` |
 
-   >  如果同时存在两种状态，则叠加
-   >
-   >  例如：`btn_order_pressed_focused.png`
+     >  如果同时存在两种状态，则叠加
+     >
+     >  例如：`btn_order_pressed_focused.png`
 
-*    布局文件
+   * 布局文件
 
      布局文件和应用的 Android 组件匹配，将组件名称放置在开头。
 
@@ -72,13 +70,13 @@
      | AdapterView Item    | `item_`     |
      | Parial Layout(部分布局) | `partial_`  |
 
-* 菜单文件
+   * 菜单文件
 
      菜单文件应该与组件名称相匹配。如果菜单是用于 `UserActivity` ，那这个命名应该为 `activity_user.xml`。
 
    > 如果是多个页面通用的，则命名规则为`组件_功能.xml`。
 
-*    Values 文件
+   *  Values 文件
 
      在 `values` 文件夹中的资源文件名称应该使用复数。
      例如：`strings.xml`，`styles`。
@@ -95,6 +93,7 @@
      * 私有，静态字段以 **s** 开头
      * 其他字段以小写字母开头
      * 常量**大写且用下划线分隔**
+     * 控件字段应该与 id 保持一致
 
      例如：
 
@@ -106,6 +105,8 @@
          int mPackagePrivate;
          private int mPrivate;
          protected int mProtected;
+       	@BindView(R.id.btn_login)
+       	Button mBtnLogin;
      }
      ```
 
@@ -166,15 +167,19 @@
 
    * 字符串常量，命名和值
 
-     当用于 Android 组件作为键值时
+     1. 当常量用于定义不同的状态或者类型等，应以所属部分为前缀。
 
-     | 类型                 | 前缀        |
-     | ------------------ | --------- |
-     | SharedPreferences  | PREF_     |
-     | Bundle             | BUNDLE_   |
-     | Fragment Arguments | ARGUMENT_ |
-     | Intent Extra       | EXTRA_    |
-     | Intent Action      | ACTION_   |
+        例如：`ORDER_STATUS_CLOSE`，`ORDER_STATUS_OPEN`。
+
+     2. 当用于 Android 组件作为键值时
+
+        | 类型                 | 前缀        |
+        | ------------------ | --------- |
+        | SharedPreferences  | PREF_     |
+        | Bundle             | BUNDLE_   |
+        | Fragment Arguments | ARGUMENT_ |
+        | Intent Extra       | EXTRA_    |
+        | Intent Action      | ACTION_   |
 
    * 链式方法
 
@@ -234,3 +239,55 @@
    * 样式和主题
 
      样式的名称应遵守**大写驼峰法**
+
+5. #### Git 提交规范
+
+   [参考](http://www.ruanyifeng.com/blog/2016/01/commit_message_change_log.html)
+
+   遵循**[Angular规范](https://docs.google.com/document/d/1QrDFcIiPjSLDn3EL15IJygNPiHORgU1_OOAqWjiDU5Y/edit#heading=h.7mqxm4jekyct)**
+
+   每次提交，Commit message 都包括三个部分：Header，Body 和 Footer。
+
+   ```
+   <type>(<scope>): <subject>
+   // 空一行
+   <body>
+   // 空一行
+   <footer>
+   ```
+
+   > Head 是必需，Body 和 Footer 可以省略
+   >
+   > 任何一行都不得超过72个字符（或100个字符）
+
+   * Header
+
+     `type(必需)` 用于说明 commit 类别，只允许使用下面 7 个标识。
+
+     * feat：新功能
+     * fix：修补bug
+     * docs：文档
+     * style：格式
+     * refactor：重构(对已有功能的修改)
+     * test：增加测试
+     * chore：构建过程或辅助工具的变动
+
+     `scope(可选)` 用于说明 commit 影响的范围。
+
+     `subject(必需)` 是 commit 的简短描述，不超过 50 个字符
+
+   * Body
+
+     Body 部分是对本次 commit 的详细描述，可以分成多行。
+
+   * Footer
+
+     Footer 部分只用于两种情况。
+
+     1. 不兼容变动
+
+        如果当前代码与上一个版本不兼容，则 Footer 部分以`BREAKING CHANGE`开头，后面是对变动的描述、以及变动理由和迁移方法。
+
+     2. 关闭 Issue
+
+        如果当前 commit 针对某个issue，那么可以在 Footer 部分关闭这个 issue 。
