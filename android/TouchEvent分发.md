@@ -9,7 +9,7 @@ viewFlags & CLICKABLE == CLICKABLE || viewFlags & LONG_CLICKABLE == LONG_CLICKAB
 1. Android的Touch事件由Activity->ViewGroup-View按顺序分发(这里只关心到Activity)
 2. 父视图可以通过`onInterceptTouchEvent`来拦截事件分发到子视图
 3. 子视图可以调用`requestDisallowInterceptTouchEvent`来禁止父视图拦截事件，但在ACTION_DOWN时，会清除该标记，即只在ACTION_DOWN时，调用该方法没有效果。
-4. 如果子视图没有调用`requestDisallowInterceptTouchEvent`，那么父视图任何时候都可以拦截事件，即使子视图已经消费了ACTION_DOWN，拦截事件后，会将该事件``setAction(ACTION_CANCEL)``，分发给子视图，之后的事件都将分发给父视图。
+4. 如果子视图没有调用`requestDisallowInterceptTouchEvent`，那么父视图任何时候都可以拦截事件，即使子视图已经消费了ACTION_DOWN，拦截事件后，会将该事件``setAction(ACTION_CANCEL)``，分发给子视图，之后的事件都将分发给父视图，同时将触摸目标置为 null。
 5. 父视图分发事件时，只会在**初始事件**时候，来设置**触摸目标**。即如果子视图没消费这三个事件，也不会接收到后续的事件。
 6. 当分发**多指初始事件**时，没有新的子视图来消费该事件时，会将该事件的指针赋予**触摸目标**的尾部。
 7. 当没有子视图来消费事件时，会将事件分发给父视图。(super.dispatchTouchEvent)
