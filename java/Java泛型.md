@@ -121,8 +121,8 @@ interface B3
    在这里，通配符是个例外。考虑下面的代码:
 
    ``` java
-   List<Double> doubleList = new Array<>();
-   List<Number> numberList = new Array<>();
+   List<? extends Double> doubleList = new Array<>();
+   List<? extends Number> numberList = new Array<>();
    numberList = doubleList;//true
    ```
 
