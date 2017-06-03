@@ -40,3 +40,11 @@ Recycler 的典型用途将是获取 adapter 在给定的 position 或者 item I
 通常情况下，RecyclerView 组件需要互相传递信息。为了在组件之间提供良好的数据总线，RecyclerView 将相同的状态对象传递给组件回调，这些组件可以使用它来交换数据。
 
 如果你实现自定义组件，则可以使用 State 的 put/get/remove 方法在组件之间传递数据，而无需管理其生命周期。
+
+### RecylerView.ViewHolder
+
+ViewHolder 描述了一个关于它在 RecyclerView 中的位置的项目视图和元数据。
+
+RecyclerView.Adapter. 实现应该是 ViewHolder 的子类，而且添加昂贵的 `findViewById(int)` 的结果字段。
+
+虽然 RecyclerView.LayoutParams 属于 RecyclerView.LayoutManager，但 ViewHolder 属于 adapter。adapte 应该可以自由使用自己的 ViewHolder 实现来存储更容易地绑定 view 内容。实现应该假定单个 item view 会保存对 ViewHolder 实例的强引用，而且 RecyclerView 实例可能会强引用额外的屏幕外的 item view，来进行缓存。
