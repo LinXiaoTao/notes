@@ -30,6 +30,9 @@
      | Menu         | `menu_`         |
      | Tabs         | `tab_`          |
      | Notification | `notification_` |
+     | checkbox     | `check_`        |
+     | radiobutton  | `radio_`        |
+     | ImageView    | `img_`          |
 
    * 图标的命名
 
@@ -41,6 +44,8 @@
      | Status bar icons                | `ic_stat_notify` |
      | Tab icons                       | `ic_tab`         |
      | Dialog icons                    | `ic_dialog`      |
+     | checkbox                        | `ic_check`       |
+     | radiobutton                     | `ic_radio`       |
 
    * 选择器状态文件的命名
 
