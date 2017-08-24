@@ -45,29 +45,28 @@
       app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
       android:minHeight="?attr/actionBarSize" />
   ```
+  作为 ActionBar 使用：
 
-作为 ActionBar 使用：
+  ``` java
+  Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+  setSupportActionBar(toolbar);
+  ```
 
-```java
-Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-setSupportActionBar(toolbar);
-```
+  独立使用：
 
-独立使用：
+  ``` java
+  // Set an OnMenuItemClickListener to handle menu item clicks
+      toolbar.setOnMenuItemClickListener(new Toolbar.OnMenuItemClickListener() {
+          @Override
+          public boolean onMenuItemClick(MenuItem item) {
+              // Handle the menu item
+              return true;
+          }
+      });
 
-``` java
-// Set an OnMenuItemClickListener to handle menu item clicks
-    toolbar.setOnMenuItemClickListener(new Toolbar.OnMenuItemClickListener() {
-        @Override
-        public boolean onMenuItemClick(MenuItem item) {
-            // Handle the menu item
-            return true;
-        }
-    });
-
-    // Inflate a menu to be displayed in the toolbar
-    toolbar.inflateMenu(R.menu.your_toolbar_menu);
-```
+      // Inflate a menu to be displayed in the toolbar
+      toolbar.inflateMenu(R.menu.your_toolbar_menu);
+  ```
 
 ### DrawerLayout
 
@@ -157,23 +156,23 @@ setSupportActionBar(toolbar);
           }
           child.dispatchApplyWindowInsets(wi);
       }
-
-
-   public static void applyMarginInsets(ViewGroup.MarginLayoutParams lp, Object insets,
-              int gravity) {
-          WindowInsets wi = (WindowInsets) insets;
-          if (gravity == Gravity.LEFT) {
-              wi = wi.replaceSystemWindowInsets(wi.getSystemWindowInsetLeft(),
-                      wi.getSystemWindowInsetTop(), 0, wi.getSystemWindowInsetBottom());
-          } else if (gravity == Gravity.RIGHT) {
-              wi = wi.replaceSystemWindowInsets(0, wi.getSystemWindowInsetTop(),
-                      wi.getSystemWindowInsetRight(), wi.getSystemWindowInsetBottom());
-          }
-          lp.leftMargin = wi.getSystemWindowInsetLeft();
-          lp.topMargin = wi.getSystemWindowInsetTop();
-          lp.rightMargin = wi.getSystemWindowInsetRight();
-          lp.bottomMargin = wi.getSystemWindowInsetBottom();
-      }
   ```
 
-  ​
+  ``` java
+  public static void applyMarginInsets(ViewGroup.MarginLayoutParams lp, Object insets, int gravity) {
+        WindowInsets wi = (WindowInsets) insets;
+        if (gravity == Gravity.LEFT) {
+            wi = wi.replaceSystemWindowInsets(wi.getSystemWindowInsetLeft(),
+                    wi.getSystemWindowInsetTop(), 0, wi.getSystemWindowInsetBottom());
+        } else if (gravity == Gravity.RIGHT) {
+            wi = wi.replaceSystemWindowInsets(0, wi.getSystemWindowInsetTop(),
+                    wi.getSystemWindowInsetRight(), wi.getSystemWindowInsetBottom());
+        }
+        lp.leftMargin = wi.getSystemWindowInsetLeft();
+        lp.topMargin = wi.getSystemWindowInsetTop();
+        lp.rightMargin = wi.getSystemWindowInsetRight();
+        lp.bottomMargin = wi.getSystemWindowInsetBottom();
+    }
+  ```
+
+

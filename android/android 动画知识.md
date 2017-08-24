@@ -1,3 +1,5 @@
+
+
 ### View.GONE
 
 当控件动画还在运行中，对控件调用 ``setVisibility(View.GONE)` 会导致不可隐藏。
