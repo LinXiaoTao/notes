@@ -548,6 +548,7 @@ protected void createAnimators(ViewGroup sceneRoot, TransitionValuesMaps startVa
         if (DBG) {
             Log.d(LOG_TAG, "createAnimators() for " + this);
         }
+  		//getRunningAnimators() 中返回的是 sRunningAnimators 保存的各个 transition 创建的动画
         ArrayMap<Animator, AnimationInfo> runningAnimators = getRunningAnimators();
         long minStartDelay = Long.MAX_VALUE;
         int minAnimator = mAnimators.size();
@@ -569,7 +570,7 @@ protected void createAnimators(ViewGroup sceneRoot, TransitionValuesMaps startVa
             // Only bother trying to animate with values that differ between start/end
             boolean isChanged = start == null || end == null || isTransitionRequired(start, end);
             if (isChanged) {
-              	//需要创建动画
+              	//视图属性改变，需要创建动画
                 //省略
                 // TODO: what to do about targetIds and itemIds
               	//调用 createAnimator() 创建动画
@@ -619,9 +620,9 @@ protected void createAnimators(ViewGroup sceneRoot, TransitionValuesMaps startVa
                         }
                         AnimationInfo info = new AnimationInfo(view, getName(), this,
                                 sceneRoot.getWindowId(), infoValues);
-                      	//添加到需要运行的动画
+                      	//添加到需要运行的动画（包括各个 Transition）
                         runningAnimators.put(animator, info);
-                      	//mAnimators 保存创建的动画
+                      	//mAnimators 保存当前 Transition 创建的动画
                         mAnimators.add(animator);
                     }
                 }
