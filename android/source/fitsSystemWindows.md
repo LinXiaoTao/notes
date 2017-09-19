@@ -124,6 +124,8 @@ private boolean fitSystemWindowsInt(Rect insets) {
     }
 ```
 
+
+
 ### 总结
 
 当设置 **windowTranslucentStatus = true(设置 statusColor = transparent 不起作用) 或 FULLSCREEN等等** 一般来说，WindowInsets 的分发从 `ViewGroup.dispatchApplyWindowInsets(WindowInsets)` 开始，首先调用超类 View 的 `dispatchApplyWindowInsets(WindowInsets)` 来消费 WindowInsets，如果还消费完，则向子视图分发，其中某个子视图消费完了，则中止分发。在 View 的 `dispatchApplyWindowInsets(WindowInsets)` 则判断是否设置了 `OnApplyWindowInsetsListener` ，交由其处理，否则调用 `onApplyWindowInsets(WindowInsets)`进行消费，其中会对旧方法 `fitSystemWindows` 进行兼容，最终会调用 `fitSystemWindowsInt(Rect)` 来通过设置 padding，来进行调整。
