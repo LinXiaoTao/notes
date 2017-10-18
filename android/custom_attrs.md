@@ -1,5 +1,7 @@
 ## 自定义属性
 
+[参考](http://www.jianshu.com/p/61b79e7f88fc)
+
 
 
 * attr 和 styleable 的关系
