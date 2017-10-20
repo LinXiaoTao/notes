@@ -1,4 +1,6 @@
-基于 Android-25，android.support.v4.widget.NestedScrollView
+> 基于 Android-26 
+>
+> android.support.v4.widget.NestedScrollView
 
 
 
@@ -67,7 +69,8 @@
               	//先调用 computeScrollOffset，再调用 isFinished 判断是否 fling 结束
                 mScroller.computeScrollOffset();
                 mIsBeingDragged = !mScroller.isFinished();
-                startNestedScroll(ViewCompat.SCROLL_AXIS_VERTICAL);
+              	startNestedScroll(ViewCompat.SCROLL_AXIS_VERTICAL, ViewCompat.TYPE_TOUCH);
+                //startNestedScroll(ViewCompat.SCROLL_AXIS_VERTICAL);
                 break;
             }
 
@@ -80,7 +83,8 @@
                 if (mScroller.springBack(getScrollX(), getScrollY(), 0, 0, 0, getScrollRange())) {
                     ViewCompat.postInvalidateOnAnimation(this);
                 }
-                stopNestedScroll();
+            	stopNestedScroll(ViewCompat.TYPE_TOUCH);
+                //stopNestedScroll();
                 break;
             case MotionEventCompat.ACTION_POINTER_UP:
             	//处理单个手指抬起的情况
@@ -137,7 +141,8 @@
                 // Remember where the motion event started
                 mLastMotionY = (int) ev.getY();
                 mActivePointerId = ev.getPointerId(0);
-                startNestedScroll(ViewCompat.SCROLL_AXIS_VERTICAL);
+              	startNestedScroll(ViewCompat.SCROLL_AXIS_VERTICAL, ViewCompat.TYPE_TOUCH);
+                //startNestedScroll(ViewCompat.SCROLL_AXIS_VERTICAL);
                 break;
             }
             case MotionEvent.ACTION_MOVE:
@@ -149,10 +154,16 @@
 
                 final int y = (int) ev.getY(activePointerIndex);
                 int deltaY = mLastMotionY - y;
-                if (dispatchNestedPreScroll(0, deltaY, mScrollConsumed, mScrollOffset)) {
+                /*if (dispatchNestedPreScroll(0, deltaY, mScrollConsumed, mScrollOffset)) {
                     deltaY -= mScrollConsumed[1];
                     vtev.offsetLocation(0, mScrollOffset[1]);
                     mNestedYOffset += mScrollOffset[1];
+                }*/
+            	if (dispatchNestedPreScroll(0, deltaY, mScrollConsumed, mScrollOffset,
+                                 ViewCompat.TYPE_TOUCH)) {
+                  	deltaY -= mScrollConsumed[1];
+                  	vtev.offsetLocation(0, mScrollOffset[1]);
+                  	mNestedYOffset += mScrollOffset[1];
                 }
                 if (!mIsBeingDragged && Math.abs(deltaY) > mTouchSlop) {
                     final ViewParent parent = getParent();
@@ -186,7 +197,9 @@
 
                     final int scrolledDeltaY = getScrollY() - oldY;
                     final int unconsumedY = deltaY - scrolledDeltaY;
-                    if (dispatchNestedScroll(0, scrolledDeltaY, 0, unconsumedY, mScrollOffset)) {
+                    /*if (dispatchNestedScroll(0, scrolledDeltaY, 0, unconsumedY, mScrollOffset)) {*/
+                  	if (dispatchNestedScroll(0, scrolledDeltaY, 0, unconsumedY, mScrollOffset, ViewCompat.TYPE_TOUCH)) {
+                              
                       	//如果分发给 parent view
                         mLastMotionY -= mScrollOffset[1];
                         vtev.offsetLocation(0, mScrollOffset[1]);
@@ -262,6 +275,94 @@
         }
         vtev.recycle();
         return true;
+    }
+```
+
+``` java
+private void flingWithNestedDispatch(int velocityY) {
+        final int scrollY = getScrollY();
+        final boolean canFling = (scrollY > 0 || velocityY > 0)
+                && (scrollY < getScrollRange() || velocityY < 0);
+  		//分发预 Fling
+        if (!dispatchNestedPreFling(0, velocityY)) {
+          	//父视图不消费 Fling，子视图处理，并且调用 dispatchNestedFling
+            dispatchNestedFling(0, velocityY, canFling);
+            fling(velocityY);
+        }
+    }
+```
+
+
+
+``` java
+public void fling(int velocityY) {
+        if (getChildCount() > 0) {
+          	//开始嵌套滚动，并且 TYPE_NON_TOUCH
+            startNestedScroll(ViewCompat.SCROLL_AXIS_VERTICAL, ViewCompat.TYPE_NON_TOUCH);
+            mScroller.fling(getScrollX(), getScrollY(), // start
+                    0, velocityY, // velocities
+                    0, 0, // x
+                    Integer.MIN_VALUE, Integer.MAX_VALUE, // y
+                    0, 0); // overscroll
+            mLastScrollerY = getScrollY();
+            ViewCompat.postInvalidateOnAnimation(this);
+        }
+    }
+```
+
+``` java
+@Override
+    public void computeScroll() {
+        if (mScroller.computeScrollOffset()) {
+            final int x = mScroller.getCurrX();
+            final int y = mScroller.getCurrY();
+
+            int dy = y - mLastScrollerY;
+
+            // Dispatch up to parent
+          	//分发预滚动 ViewCompat.TYPE_NON_TOUCH
+            if (dispatchNestedPreScroll(0, dy, mScrollConsumed, null, ViewCompat.TYPE_NON_TOUCH)) {
+                dy -= mScrollConsumed[1];
+            }
+
+            if (dy != 0) {
+                final int range = getScrollRange();
+                final int oldScrollY = getScrollY();
+
+                overScrollByCompat(0, dy, getScrollX(), oldScrollY, 0, range, 0, 0, false);
+
+                final int scrolledDeltaY = getScrollY() - oldScrollY;
+                final int unconsumedY = dy - scrolledDeltaY;
+
+                if (!dispatchNestedScroll(0, scrolledDeltaY, 0, unconsumedY, null,
+                        ViewCompat.TYPE_NON_TOUCH)) {
+                  	//如果分发 TYPE_NON_TOUCH 失败了，交由边缘效果处理
+                    final int mode = getOverScrollMode();
+                    final boolean canOverscroll = mode == OVER_SCROLL_ALWAYS
+                            || (mode == OVER_SCROLL_IF_CONTENT_SCROLLS && range > 0);
+                    if (canOverscroll) {
+                        ensureGlows();
+                        if (y <= 0 && oldScrollY > 0) {
+                            mEdgeGlowTop.onAbsorb((int) mScroller.getCurrVelocity());
+                        } else if (y >= range && oldScrollY < range) {
+                            mEdgeGlowBottom.onAbsorb((int) mScroller.getCurrVelocity());
+                        }
+                    }
+                }
+            }
+
+            // Finally update the scroll positions and post an invalidation
+            mLastScrollerY = y;
+            ViewCompat.postInvalidateOnAnimation(this);
+        } else {
+            // We can't scroll any more, so stop any indirect scrolling
+          	//如果存在响应 TYPE_NON_TOUCH，通知结束
+            if (hasNestedScrollingParent(ViewCompat.TYPE_NON_TOUCH)) {
+                stopNestedScroll(ViewCompat.TYPE_NON_TOUCH);
+            }
+            // and reset the scroller y
+            mLastScrollerY = 0;
+        }
     }
 ```
 

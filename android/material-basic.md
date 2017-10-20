@@ -30,7 +30,7 @@
 
   有时候需要 ActionBar 的文字是白的，ActionBar Overflow 弹出的是白底黑字。
 
-  让 ActionBar 文字是白的，对于的 theme 是 Dark。
+  让 ActionBar 文字是白的，对应的 theme 是 Dark。
 
   让 ActionBar Overflow 弹出的是白底黑字，则需要 Light。
 
@@ -107,9 +107,8 @@
   ```
 
   ``` java
-  drawerLayout = (DrawerLayout)  
-        findViewById(R.id.drawerLayout);  
-     drawerLayout.setStatusBarBackground(R.color.primary_dark);
+  drawerLayout = (DrawerLayout)findViewById(R.id.drawerLayout);  
+  drawerLayout.setStatusBarBackground(R.color.primary_dark);
   //在 style 中设置了 windowTranslucentStatus 或 statusBarColor = transparent ，那么只能在 DrawerLayout 中设置状态栏颜色，注意 DrawerLayout 需设置 fitsSystemWindows = true，而且状态栏颜色必须是透明的
   ```
 

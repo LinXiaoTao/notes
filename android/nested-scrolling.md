@@ -1,5 +1,7 @@
 ## 概述
 
+> 基于 Android-26 
+
 NestedScrolling 机制工作的流程如下：
 
 1. 当 child view 开启滚动时，先通知 parent view 消费滚动事件
@@ -16,6 +18,16 @@ NestedScrolling 机制工作的流程如下：
 * `NestedScrollingParentHelper`
 
 要实现 NestedScrolling 机制，parent view 需要实现 `NestedScrollingParent` 接口，child view 则需要实现 `NestedScrollingChild` 接口。
+
+**support-compat-26.0.0** 新添加：
+
+* `NestedScrollingParent2`
+* `NestedScrollingChild2`
+
+主要是增加了 `NestedScrollType` ：
+
+* `TYPE_TOUCH`：表示手势来源于用户触摸屏幕
+* `TYPE_NON_TOUCH`：表示手势不是由用户触摸屏幕引起的。这通常是 **Fling** 发生后，还处于运动中。
 
 
 
@@ -59,8 +71,11 @@ public void onNestedScroll(View target, int dxConsumed, int dyConsumed,
             int dxUnconsumed, int dyUnconsumed);
 
 //dispatchNestedPreFling 之后调用
+//返回表示 true 父视图已经消费了 Fling
 public boolean onNestedPreFling(View target, float velocityX, float velocityY);
 //dispatchNestedFling 之后调用
+//当子视图开始 Fling 处理时调用，consumed 表示子视图是否消费了
+//返回 ture 表示父视图消费了或者响应
 public boolean onNestedFling(View target, float velocityX, float velocityY, boolean consumed);
 ```
 
@@ -68,7 +83,7 @@ public boolean onNestedFling(View target, float velocityX, float velocityY, bool
 
 ### 源码分析
 
-基于 Android-25，android.view.View
+**android.view.View**
 
 ``` java
 public boolean startNestedScroll(int axes) {
