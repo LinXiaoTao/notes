@@ -36,10 +36,11 @@ final WindowInsetsCompat setWindowInsets(WindowInsetsCompat insets) {
             mDrawStatusBarBackground = insets != null && insets.getSystemWindowInsetTop() > 0;
             setWillNotDraw(!mDrawStatusBarBackground && getBackground() == null);
 
-            //将 WindowInset 分发给 Behaviors
+            //将 WindowInset 优先分发给 Behaviors
             insets = dispatchApplyWindowInsetsToBehaviors(insets);
             requestLayout();
         }
+  		//如果 WindowInset 被 Behaviors 消费后，后续默认的分发流程就不会继续进行了
         return insets;
     }
 
