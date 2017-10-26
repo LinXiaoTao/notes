@@ -61,7 +61,7 @@ Alpha 合成，其实就是 「PorterDuff」 这个词所指代的算法。 「P
   $$
 
   $$
-  C_{out} = C_{src} * C_{dst}
+  C_{out} = C_{src} * a_{dst}
   $$
 
 * SRC_OUT
@@ -195,6 +195,7 @@ $$
 
 
 
+
 ### Blending modes
 
 * DARKEN
@@ -264,6 +265,7 @@ $$
    \alpha_{src} * \alpha_{dst} - 2 (\alpha_{dst} - C_{src}) (\alpha_{src} - C_{dst}) & otherwise \end{cases}
    \end{equation}
   $$
+
 
 
 
