@@ -58,6 +58,8 @@ public boolean dispatchNestedFling(float velocityX, float velocityY, boolean con
 
 ``` java
 //响应 child view 的 startNestedScroll，返回 true，表示进行嵌套滚动
+//View child:  当前 parent view 的直接子视图
+//View target: 分发事件的 child view（startNestedScroll）
 public boolean onStartNestedScroll(View child, View target, int nestedScrollAxes);
 //成功获取嵌套滚动处理，在 onStartNestedScroll 返回 true 之后调用
 public void onNestedScrollAccepted(View child, View target, int nestedScrollAxes);

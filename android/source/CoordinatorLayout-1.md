@@ -22,7 +22,7 @@ private void setupForInsets() {
             // First apply the insets listener
             ViewCompat.setOnApplyWindowInsetsListener(this, mApplyWindowInsetsListener);
 
-            //设置 FULLSCREEN，从而获取 WindowInsets 的处理
+            //设置 Layout FULLSCREEN，从而获取 WindowInsets 的处理
             setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                     | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
         } else {

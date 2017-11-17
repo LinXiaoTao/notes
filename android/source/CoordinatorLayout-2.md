@@ -295,7 +295,7 @@ private void prepareChildren() {
 
 
 //是否存在依赖关系
-//1.是否为 mAnchorDirectChild，即 AnchorView 的 CoordinatorLayout 直接子视图
+//1.是否为 mAnchorDirectChild，即 AnchorView 在 CoordinatorLayout 直接子视图
 //2.是否存在躲避插入 CoordinatorLayout 方向的关系
 //3.调用 Behavior.layoutDependsOn
 boolean dependsOn(CoordinatorLayout parent, View child, View dependency) {

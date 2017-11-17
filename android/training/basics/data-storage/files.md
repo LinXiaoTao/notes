@@ -46,9 +46,9 @@ Android 使用与其他平台上基于磁盘的文件系统类似的文件系统
 > **注意：**您的应用的内部存储设备目录由您的应用在Android 文件系统特定位置中的软件包名称指定。从技术上讲，如果您将文件模式设置为可读，那么，另一应用也可以读取您的内部文件。但是，此应用也需要知道您的应用的软件包名称和文件名。其他应用无法浏览您的内部目录并且没有读写权限，除非您明确将文件设置为可读或可写。
 
 ```
-getFilesDir: /data/user/0/com.example.linxiaotao.paytestproject/files
+getFilesDir: /data/data/com.example.linxiaotao.paytestproject/files
 
-getCacheDir: /data/user/0/com.example.linxiaotao.paytestproject/cache
+getCacheDir: /data/data/com.example.linxiaotao.paytestproject/cache
 ```
 
 
@@ -79,6 +79,8 @@ public boolean isExternalStorageReadable() {
 ```
 
 尽管外部存储可被用户和其他应用进行修改，但您可以在此处保存两类文件：
+
+> 使用 Environment 获取的文件夹都属于外部存储。
 
 * 公共文件
 
