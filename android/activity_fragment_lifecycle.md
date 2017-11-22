@@ -66,6 +66,16 @@
 
   系统将此方法作为用户离开片段的第一个信号（但并不总是意味着此片段会被销毁）进行调用。
 
+* onUserInteraction()
+
+  当用户有交互动作的回调方法
+
+* onUserLeaveHint()
+
+  当应用程序进入后台时候的回调方法
+
+
+
 
 
 ### 处理 Fragment 生命周期
@@ -93,6 +103,10 @@
 * onDetach()
 
   在取消片段与 Activity 的关联时调用。
+
+> 当 Activity 已 `add` 一个 Fragment，在不 `remove` 或 `replace` 旧 Fragment 的情况下，再 `add` 一个新的 Fragment，旧的 Fragment 不会像 Activity 那样调用 `onPause` 和 `onStop`
+
+> 当 `remove`  或 `replace` 一个 Fragment，如果使用了 `FragmentTransaction.addToBackStack()` 的话，Fragment 会调用 `onPause` ，`onStop` 和 `onDestroyView` ，当 BackStack pop 时，会重新调用 `onCreateView` 等流程，如果没有使用 `FragmentTransaction.addToBackStack()` 则会直接调用到 `onDetach` 。
 
 > 通常情况下，在 A Activity 开始 B Activity，回调方法顺序大致如下：
 >
