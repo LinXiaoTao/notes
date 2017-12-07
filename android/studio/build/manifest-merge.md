@@ -1,5 +1,3 @@
-[参考](https://developer.android.com/studio/build/manifest-merge.html?hl=zh-cn)
-
 APK 文件只能包含一个 `AndroidManifest.xml` 文件，但 Android Studio 项目可以包含多个文件（通过主源集、构建变体和导入的库提供）。
 
 ### 合并优先级

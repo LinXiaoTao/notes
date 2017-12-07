@@ -94,4 +94,6 @@
   }
   ```
 
+* `Observable amb(Iterable<? extends ObservableSource<? extends T>> sources)`
+
   ​
