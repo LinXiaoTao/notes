@@ -94,6 +94,35 @@
   }
   ```
 
-* `Observable amb(Iterable<? extends ObservableSource<? extends T>> sources)`
+* `Observable switchIfEmpty(observableSource other)`
+
+  返回源 `ObservableSource` 发射子项的 `Observable`，如果源为空，则返回备选的 `ObservableSource` 发射子项的 `Observable`。
+
+  ``` java
+  //ObservableSwitchIfEmpty.SwitchIfEmptyObserver
+  @Override
+   public void onNext(T t){
+     //empty 默认为 true
+     if(empty){
+       empty = false;
+     }
+     actual.onNext(t);
+   }
+
+  @Override
+  public void onComplete(){
+    if(empty){
+      //如果 source 为空
+      //设置 empty 为 false，防止死循环
+      empty = false;
+      //订阅备选的 ObservableSource
+      other.subscribe(this);
+    }else{
+      actual.onComple();
+    }
+  }
+  ```
+
+  ​
 
   ​
