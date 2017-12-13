@@ -241,6 +241,7 @@
                         flingWithNestedDispatch(-initialVelocity);
                     } else if (mScroller.springBack(getScrollX(), getScrollY(), 0, 0, 0,
                             getScrollRange())) {
+                      	//如果加速度不够 fling，则 spring back 复位
                         ViewCompat.postInvalidateOnAnimation(this);
                     }
                 }
@@ -279,8 +280,11 @@
 ```
 
 ``` java
+//注意，调用 flingWithNestedDispatch 是 -velocityY，所有 velocityY > 0 是向上加速度，< 0 则是向下加速度
 private void flingWithNestedDispatch(int velocityY) {
         final int scrollY = getScrollY();
+  		//scrollY > 0 已经向下滑动一段距离，并且向上加速度
+  		//scrollY < getScrollRange 还在滑动范围内，并且向下加速度
         final boolean canFling = (scrollY > 0 || velocityY > 0)
                 && (scrollY < getScrollRange() || velocityY < 0);
   		//分发预 Fling

@@ -205,3 +205,112 @@ fun test(){
 
 
 
+### if 表达式
+
+``` kotlin
+fun foo(param: Int){
+  val result = if(param == 1){
+    "one"
+  }else if(param == 2){
+    "two"
+  }else {
+    "three"
+  }
+}
+```
+
+
+
+### 在返回 Unit 的方法上使用 Builder 
+
+``` kotlin
+fun arrayOfMinusOnes(size: Int): IntArray{
+  return IntArray(size).apply { fill(-1) }
+}
+```
+
+
+
+### 单个表达式方法
+
+``` kotlin
+fun theAnswer() = 42
+```
+
+这相当于
+
+``` kotlin
+fun theAnswer(): Int{
+  return 42
+}
+```
+
+和 when 配合使用
+
+``` kotlin
+fun transform(color: String): Int = when(color){
+  "Red"		-> 0
+  "Green"	-> 1
+  "Blue"	-> 2
+  else		-> throw IllegalArgumentException("Invalid color param value")
+}
+```
+
+
+
+### 使用 with 在单个实例上调用多个方法
+
+``` kotlin
+class Turtle {
+  fun penDown()
+  fun penUp()
+  fun turn(degree: Double)
+  fun forward(pixels: Double)
+  
+  val myTurtle = Turtle()
+  with(myTurtle){
+    penDown()
+    for(i in 1..4){
+      forward(100.0)
+      turn(90.0)
+    }
+    penUp()
+  }
+}
+```
+
+
+
+### Java7 访问资源
+
+``` kotlin
+val stream = Files.newInputStream(Paths.get("/some/file.txt"))
+stream.buffered().reader().use{ reader ->
+                               println(reader.readText())
+}
+```
+
+
+
+### 泛型方法
+
+``` kotlin
+inline fun<reified T: Any> Gson.fromJson(json: JsonElement): T = 
+this.fromJson(json,T::class.java)
+```
+
+
+
+### 使用可空的 Boolean
+
+``` kotlin
+val b: Boolean? = ...
+if(b == true){
+  
+}else{
+  // b is false or null
+}
+```
+
+
+
