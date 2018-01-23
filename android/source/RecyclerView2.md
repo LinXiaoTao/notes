@@ -1,35 +1,3 @@
-## 构造函数
-
-AdapterHelper 队列化并且处理 Adapter 更新操作。
-
-``` java
-void initAdapterManager(){
-  
-}
-```
-
-
-
-ChildHelper 帮助管理 RecyclerView child view。
-
-``` java
-private void initChildrenHelper(){
-  
-}
-```
-
-
-
-ItemAnimatorListener 是 ItemAnimator 的事件监听接口。
-
-``` java
-private ItemAnimator.ItemAnimatorListener mItemAnimatorListener =
-            new ItemAnimatorRestoreListener();
-mItemAnimator.setListener(mItemAnimatorListener);
-```
-
-
-
 ## Measure, Layout and Draw
 
 ### Measure
@@ -446,5 +414,271 @@ public void onDraw(Canvas c) {
         mItemDecorations.get(i).onDraw(c, this, mState);       
     }                                                          
 }                                                              
+```
+
+
+
+## LayoutManager（LinearLayoutManager）
+
+### Measure
+
+measure 默认做最简单的计算。
+
+``` java
+/**                                                                                    
+ * Measure the attached RecyclerView. Implementations must call                        
+ * {@link #setMeasuredDimension(int, int)} before returning.                           
+ *                                                                                     
+ * <p>The default implementation will handle EXACTLY measurements and respect          
+ * the minimum width and height properties of the host RecyclerView if measured        
+ * as UNSPECIFIED. AT_MOST measurements will be treated as EXACTLY and the RecyclerView
+ * will consume all available space.</p>                                               
+ *                                                                                     
+ * @param recycler Recycler                                                            
+ * @param state Transient state of RecyclerView                                        
+ * @param widthSpec Width {@link android.view.View.MeasureSpec}                        
+ * @param heightSpec Height {@link android.view.View.MeasureSpec}                      
+ */                                                                                    
+public void onMeasure(Recycler recycler, State state, int widthSpec, int heightSpec) { 
+    mRecyclerView.defaultOnMeasure(widthSpec, heightSpec);                             
+}
+
+/**                                                                                            
+ * Used when onMeasure is called before layout manager is set                                  
+ */                                                                                            
+void defaultOnMeasure(int widthSpec, int heightSpec) {                                         
+    // calling LayoutManager here is not pretty but that API is already public and it is better
+    // than creating another method since this is internal.                                    
+    final int width = LayoutManager.chooseSize(widthSpec,                                      
+            getPaddingLeft() + getPaddingRight(),                                              
+            ViewCompat.getMinimumWidth(this));                                                 
+    final int height = LayoutManager.chooseSize(heightSpec,                                    
+            getPaddingTop() + getPaddingBottom(),                                              
+            ViewCompat.getMinimumHeight(this));                                                
+                                                                                               
+    setMeasuredDimension(width, height);                                                       
+}
+
+/**                                                                                      
+ * Chooses a size from the given specs and parameters that is closest to the desired size
+ * and also complies with the spec.                                                      
+ *                                                                                       
+ * @param spec The measureSpec                                                           
+ * @param desired The preferred measurement                                              
+ * @param min The minimum value                                                          
+ *                                                                                       
+ * @return A size that fits to the given specs                                           
+ */                                                                                      
+public static int chooseSize(int spec, int desired, int min) {                           
+    final int mode = View.MeasureSpec.getMode(spec);                                     
+    final int size = View.MeasureSpec.getSize(spec);                                     
+    switch (mode) {                                                                      
+        case View.MeasureSpec.EXACTLY:                                                   
+            return size;                                                                 
+        case View.MeasureSpec.AT_MOST:                                                   
+            return Math.min(size, Math.max(desired, min));                               
+        case View.MeasureSpec.UNSPECIFIED:                                               
+        default:                                                                         
+            return Math.max(desired, min);                                               
+    }                                                                                    
+}                                                                                        
+```
+
+###  onLayoutChildren
+
+``` java
+@Override                                                                                         
+public void onLayoutChildren(RecyclerView.Recycler recycler, RecyclerView.State state) {          
+  	// 布局算法：
+    // 1）通过检查 child 和 其他变量，来找到一个锚点坐标和锚点 item position。
+  	// 2）向起点填充，从底部开始
+  	// 3）向终点填充，从顶部开始
+  	// 3）滚动来完成从底部堆栈的需求
+    if (DEBUG) {                                                                                  
+        Log.d(TAG, "is pre layout:" + state.isPreLayout());                                       
+    }                                                                                             
+    if (mPendingSavedState != null || mPendingScrollPosition != NO_POSITION) {                    
+        if (state.getItemCount() == 0) {                                                          
+            removeAndRecycleAllViews(recycler);                                                   
+            return;                                                                               
+        }                                                                                         
+    }                                                                                             
+    if (mPendingSavedState != null && mPendingSavedState.hasValidAnchor()) {                      
+        mPendingScrollPosition = mPendingSavedState.mAnchorPosition;                              
+    }                                                                                             
+                                                                                                  	  //创建 layout state
+    ensureLayoutState();                                                                          
+    mLayoutState.mRecycle = false;                                                                
+    // resolve layout direction                                                                   
+    resolveShouldLayoutReverse();                                                                 
+                                                                                                  
+    final View focused = getFocusedChild();                                                       
+    if (!mAnchorInfo.mValid || mPendingScrollPosition != NO_POSITION                              
+            || mPendingSavedState != null) {                                                      
+        mAnchorInfo.reset();                                                                      
+        mAnchorInfo.mLayoutFromEnd = mShouldReverseLayout ^ mStackFromEnd;                        
+        // calculate anchor position and coordinate                                               
+        updateAnchorInfoForLayout(recycler, state, mAnchorInfo);                                  
+        mAnchorInfo.mValid = true;                                                                
+    } else if (focused != null && (mOrientationHelper.getDecoratedStart(focused)                  
+                    >= mOrientationHelper.getEndAfterPadding()                                    
+            || mOrientationHelper.getDecoratedEnd(focused)                                        
+            <= mOrientationHelper.getStartAfterPadding())) {                                      
+        // This case relates to when the anchor child is the focused view and due to layout       
+        // shrinking the focused view fell outside the viewport, e.g. when soft keyboard shows    
+        // up after tapping an EditText which shrinks RV causing the focused view (The tapped     
+        // EditText which is the anchor child) to get kicked out of the screen. Will update the   
+        // anchor coordinate in order to make sure that the focused view is laid out. Otherwise,  
+        // the available space in layoutState will be calculated as negative preventing the       
+        // focused view from being laid out in fill.                                              
+        // Note that we won't update the anchor position between layout passes (refer to          
+        // TestResizingRelayoutWithAutoMeasure), which happens if we were to call                 
+        // updateAnchorInfoForLayout for an anchor that's not the focused view (e.g. a reference  
+        // child which can change between layout passes).                                         
+        mAnchorInfo.assignFromViewAndKeepVisibleRect(focused);                                    
+    }                                                                                             
+    if (DEBUG) {                                                                                  
+        Log.d(TAG, "Anchor info:" + mAnchorInfo);                                                 
+    }                                                                                             
+                                                                                                  	  //LinearLayoutManager 可能需要使用额外的像素来 layout item，实现滚动到目标 position，缓存或者预测动画。 
+    int extraForStart;                                                                            
+    int extraForEnd;                                                                              
+    final int extra = getExtraLayoutSpace(state);                                                 
+    if (mLayoutState.mLastScrollDelta >= 0) {                                                     
+      	//之前的滚动距离大于 0，从下往上滑动
+        extraForEnd = extra;                                                                      
+        extraForStart = 0;                                                                        
+    } else {                                                                                      
+        extraForStart = extra;                                                                    
+        extraForEnd = 0;                                                                          
+    }                                                                                             
+    extraForStart += mOrientationHelper.getStartAfterPadding();                                   
+    extraForEnd += mOrientationHelper.getEndPadding();                                            
+    if (state.isPreLayout() && mPendingScrollPosition != NO_POSITION                              
+            && mPendingScrollPositionOffset != INVALID_OFFSET) {                                  
+        // if the child is visible and we are going to move it around, we should layout           
+        // extra items in the opposite direction to make sure new items animate nicely            
+        // instead of just fading in                                                              
+        final View existing = findViewByPosition(mPendingScrollPosition);                         
+        if (existing != null) {                                                                   
+            final int current;                                                                    
+            final int upcomingOffset;                                                             
+            if (mShouldReverseLayout) {                                                           
+                current = mOrientationHelper.getEndAfterPadding()                                 
+                        - mOrientationHelper.getDecoratedEnd(existing);                           
+                upcomingOffset = current - mPendingScrollPositionOffset;                          
+            } else {                                                                              
+                current = mOrientationHelper.getDecoratedStart(existing)                          
+                        - mOrientationHelper.getStartAfterPadding();                              
+                upcomingOffset = mPendingScrollPositionOffset - current;                          
+            }                                                                                     
+            if (upcomingOffset > 0) {                                                             
+                extraForStart += upcomingOffset;                                                  
+            } else {                                                                              
+                extraForEnd -= upcomingOffset;                                                    
+            }                                                                                     
+        }                                                                                         
+    }                                                                                             
+    int startOffset;                                                                              
+    int endOffset;                                                                                
+    final int firstLayoutDirection;                                                               
+    if (mAnchorInfo.mLayoutFromEnd) {                                                             
+        firstLayoutDirection = mShouldReverseLayout ? LayoutState.ITEM_DIRECTION_TAIL             
+                : LayoutState.ITEM_DIRECTION_HEAD;                                                
+    } else {                                                                                      
+        firstLayoutDirection = mShouldReverseLayout ? LayoutState.ITEM_DIRECTION_HEAD             
+                : LayoutState.ITEM_DIRECTION_TAIL;                                                
+    }                                                                                             
+                                                                                                  
+    onAnchorReady(recycler, state, mAnchorInfo, firstLayoutDirection);                            
+    detachAndScrapAttachedViews(recycler);                                                        
+    mLayoutState.mInfinite = resolveIsInfinite();                                                 
+    mLayoutState.mIsPreLayout = state.isPreLayout();                                              
+    if (mAnchorInfo.mLayoutFromEnd) {                                                             
+        // fill towards start                                                                     
+        updateLayoutStateToFillStart(mAnchorInfo);                                                
+        mLayoutState.mExtra = extraForStart;                                                      
+        fill(recycler, mLayoutState, state, false);                                               
+        startOffset = mLayoutState.mOffset;                                                       
+        final int firstElement = mLayoutState.mCurrentPosition;                                   
+        if (mLayoutState.mAvailable > 0) {                                                        
+            extraForEnd += mLayoutState.mAvailable;                                               
+        }                                                                                         
+        // fill towards end                                                                       
+        updateLayoutStateToFillEnd(mAnchorInfo);                                                  
+        mLayoutState.mExtra = extraForEnd;                                                        
+        mLayoutState.mCurrentPosition += mLayoutState.mItemDirection;                             
+        fill(recycler, mLayoutState, state, false);                                               
+        endOffset = mLayoutState.mOffset;                                                         
+                                                                                                  
+        if (mLayoutState.mAvailable > 0) {                                                        
+            // end could not consume all. add more items towards start                            
+            extraForStart = mLayoutState.mAvailable;                                              
+            updateLayoutStateToFillStart(firstElement, startOffset);                              
+            mLayoutState.mExtra = extraForStart;                                                  
+            fill(recycler, mLayoutState, state, false);                                           
+            startOffset = mLayoutState.mOffset;                                                   
+        }                                                                                         
+    } else {                                                                                      
+        // fill towards end                                                                       
+        updateLayoutStateToFillEnd(mAnchorInfo);                                                  
+        mLayoutState.mExtra = extraForEnd;                                                        
+        fill(recycler, mLayoutState, state, false);                                               
+        endOffset = mLayoutState.mOffset;                                                         
+        final int lastElement = mLayoutState.mCurrentPosition;                                    
+        if (mLayoutState.mAvailable > 0) {                                                        
+            extraForStart += mLayoutState.mAvailable;                                             
+        }                                                                                         
+        // fill towards start                                                                     
+        updateLayoutStateToFillStart(mAnchorInfo);                                                
+        mLayoutState.mExtra = extraForStart;                                                      
+        mLayoutState.mCurrentPosition += mLayoutState.mItemDirection;                             
+        fill(recycler, mLayoutState, state, false);                                               
+        startOffset = mLayoutState.mOffset;                                                       
+                                                                                                  
+        if (mLayoutState.mAvailable > 0) {                                                        
+            extraForEnd = mLayoutState.mAvailable;                                                
+            // start could not consume all it should. add more items towards end                  
+            updateLayoutStateToFillEnd(lastElement, endOffset);                                   
+            mLayoutState.mExtra = extraForEnd;                                                    
+            fill(recycler, mLayoutState, state, false);                                           
+            endOffset = mLayoutState.mOffset;                                                     
+        }                                                                                         
+    }                                                                                             
+                                                                                                  
+    // changes may cause gaps on the UI, try to fix them.                                         
+    // TODO we can probably avoid this if neither stackFromEnd/reverseLayout/RTL values have      
+    // changed                                                                                    
+    if (getChildCount() > 0) {                                                                    
+        // because layout from end may be changed by scroll to position                           
+        // we re-calculate it.                                                                    
+        // find which side we should check for gaps.                                              
+        if (mShouldReverseLayout ^ mStackFromEnd) {                                               
+            int fixOffset = fixLayoutEndGap(endOffset, recycler, state, true);                    
+            startOffset += fixOffset;                                                             
+            endOffset += fixOffset;                                                               
+            fixOffset = fixLayoutStartGap(startOffset, recycler, state, false);                   
+            startOffset += fixOffset;                                                             
+            endOffset += fixOffset;                                                               
+        } else {                                                                                  
+            int fixOffset = fixLayoutStartGap(startOffset, recycler, state, true);                
+            startOffset += fixOffset;                                                             
+            endOffset += fixOffset;                                                               
+            fixOffset = fixLayoutEndGap(endOffset, recycler, state, false);                       
+            startOffset += fixOffset;                                                             
+            endOffset += fixOffset;                                                               
+        }                                                                                         
+    }                                                                                             
+    layoutForPredictiveAnimations(recycler, state, startOffset, endOffset);                       
+    if (!state.isPreLayout()) {                                                                   
+        mOrientationHelper.onLayoutComplete();                                                    
+    } else {                                                                                      
+        mAnchorInfo.reset();                                                                      
+    }                                                                                             
+    mLastStackFromEnd = mStackFromEnd;                                                            
+    if (DEBUG) {                                                                                  
+        validateChildOrder();                                                                     
+    }                                                                                             
+}                                                                                                 
 ```
 
