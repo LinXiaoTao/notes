@@ -451,3 +451,89 @@ public boolean fling(int velocityX, int velocityY) {
 }                                                                                             
 ```
 
+### LayoutManager
+
+RecyclerView 的 scroll 和 fling 都会调用到 `LayoutManager.scrollHorizontallyBy()` 或者 `LayoutManager.scrollVerticallyBy()` 进行实际滚动处理。
+
+我们还是以 `LinearLayoutManager.scrollVerticallyBy()` 进行分析：
+
+``` java
+int scrollBy(int dy, RecyclerView.Recycler recycler, RecyclerView.State state) {                
+    if (getChildCount() == 0 || dy == 0) {                                                      
+        return 0;                                                                               
+    }                                                                                           
+    mLayoutState.mRecycle = true;                                                               
+    ensureLayoutState();                                                                        
+    final int layoutDirection = dy > 0 ? LayoutState.LAYOUT_END : LayoutState.LAYOUT_START;     
+    final int absDy = Math.abs(dy);
+  	// 更新 layout state
+    updateLayoutState(layoutDirection, absDy, true, state);
+  	// 调用 fill 进行填充
+    final int consumed = mLayoutState.mScrollingOffset                                          
+            + fill(recycler, mLayoutState, state, false);                                       
+    if (consumed < 0) {                                                                         
+        if (DEBUG) {                                                                            
+            Log.d(TAG, "Don't have any more elements to scroll");                               
+        }                                                                                       
+        return 0;                                                                               
+    }                                                                                           
+    final int scrolled = absDy > consumed ? layoutDirection * consumed : dy;
+  	// 平移 child view，让 fill 的 view 处于可见范围。
+    mOrientationHelper.offsetChildren(-scrolled);                                               
+    if (DEBUG) {                                                                                
+        Log.d(TAG, "scroll req: " + dy + " scrolled: " + scrolled);                             
+    }                                                                                           
+    mLayoutState.mLastScrollDelta = scrolled;                                                   
+    return scrolled;                                                                            
+}                                                                                               
+```
+
+``` java
+// 根据 scroll 更新需要重新 fill 添加的空间距离。
+private void updateLayoutState(int layoutDirection, int requiredSpace,                         
+        boolean canUseExistingSpace, RecyclerView.State state) {                               
+    // If parent provides a hint, don't measure unlimited.                                     
+    mLayoutState.mInfinite = resolveIsInfinite();
+  	// 如果存在 target position 返回总空间
+    mLayoutState.mExtra = getExtraLayoutSpace(state);                                          
+    mLayoutState.mLayoutDirection = layoutDirection;                                           
+    int scrollingOffset;                                                                       
+    if (layoutDirection == LayoutState.LAYOUT_END) {
+      	// 从 End 开始布局
+        mLayoutState.mExtra += mOrientationHelper.getEndPadding();                             
+        // 获取当前布局方向的第一个 child view。                                   
+        final View child = getChildClosestToEnd();                                             
+        // the direction in which we are traversing children                                   
+        mLayoutState.mItemDirection = mShouldReverseLayout ? LayoutState.ITEM_DIRECTION_HEAD   
+                : LayoutState.ITEM_DIRECTION_TAIL;                                             
+        mLayoutState.mCurrentPosition = getPosition(child) + mLayoutState.mItemDirection;      
+        mLayoutState.mOffset = mOrientationHelper.getDecoratedEnd(child);                      
+        // 计算我们在不添加新的 child view 的情况下，最大能滚动多少距离（独立于 layout）
+        scrollingOffset = mOrientationHelper.getDecoratedEnd(child)                            
+                - mOrientationHelper.getEndAfterPadding();                                     
+                                                                                               
+    } else {                                                                                   
+        final View child = getChildClosestToStart();                                           
+        mLayoutState.mExtra += mOrientationHelper.getStartAfterPadding();                      
+        mLayoutState.mItemDirection = mShouldReverseLayout ? LayoutState.ITEM_DIRECTION_TAIL   
+                : LayoutState.ITEM_DIRECTION_HEAD;                                             
+        mLayoutState.mCurrentPosition = getPosition(child) + mLayoutState.mItemDirection;      
+        mLayoutState.mOffset = mOrientationHelper.getDecoratedStart(child);                    
+        scrollingOffset = -mOrientationHelper.getDecoratedStart(child)                         
+                + mOrientationHelper.getStartAfterPadding();                                   
+    }                                                                                          
+    mLayoutState.mAvailable = requiredSpace;                                                   
+    if (canUseExistingSpace) {                                                                 
+        mLayoutState.mAvailable -= scrollingOffset;                                            
+    }
+  	// 保存滚动多少距离，而不用创建一个新的 view。这是高效回收所需的设置。
+    mLayoutState.mScrollingOffset = scrollingOffset;                                           
+}                                                                                              
+```
+
+
+
+
+
+​                                                                                         
+

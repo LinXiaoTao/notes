@@ -73,7 +73,7 @@ protected void onMeasure(int widthSpec, int heightSpec) {
             mAdapterUpdateDuringMeasure = false;                                                
             resumeRequestLayout(false);                                                         
         } else if (mState.mRunPredictiveAnimations) {                                           
-            //这意味着已经有一个 onMeasuer 被调用，来处理等待的 adapter change，如果 RecyclerView 是作为 LinearLayout 的 child view，并且 layout_width = MATCH_PARENT，可能会有两个 onMeasure 被调用。RecyclerView 不能第二次调用 LayoutManager.onMeasure()，因为当 LayoutManager 使用 child 去测量时，getViewForPosition() 将奔溃。
+            //这意味着已经有一个 onMeasuer 被调用，来处理等待的 adapter change，如果 RecyclerView 是作为 LinearLayout 的 child view，并且 layout_width = MATCH_PARENT，可能会有两个 onMeasure 被调用。RecyclerView 不能第二次调用 LayoutManager.onMeasure()，因为当 LayoutManager 使用 child 去测量时，getViewForPosition() 将崩溃。
             setMeasuredDimension(getMeasuredWidth(), getMeasuredHeight());                      
             return;                                                                             
         }                                                                                       
@@ -545,7 +545,6 @@ public void onLayoutChildren(RecyclerView.Recycler recycler, RecyclerView.State 
     int extraForEnd;                                                                              
     final int extra = getExtraLayoutSpace(state);                                                 
     if (mLayoutState.mLastScrollDelta >= 0) {                                                     
-      	//之前的滚动距离大于 0，从下往上滑动
         extraForEnd = extra;                                                                      
         extraForStart = 0;                                                                        
     } else {                                                                                      
@@ -590,37 +589,17 @@ public void onLayoutChildren(RecyclerView.Recycler recycler, RecyclerView.State 
                 : LayoutState.ITEM_DIRECTION_TAIL;                                                
     }                                                                                             
                                                                                                   
-    onAnchorReady(recycler, state, mAnchorInfo, firstLayoutDirection);                            
+    onAnchorReady(recycler, state, mAnchorInfo, firstLayoutDirection);
+  	//暂时 detach 和 scrap 所有当前 attached child views。
     detachAndScrapAttachedViews(recycler);                                                        
     mLayoutState.mInfinite = resolveIsInfinite();                                                 
     mLayoutState.mIsPreLayout = state.isPreLayout();                                              
-    if (mAnchorInfo.mLayoutFromEnd) {                                                             
+    if (mAnchorInfo.mLayoutFromEnd) {
+      	//从终点开始 layout
         // fill towards start                                                                     
-        updateLayoutStateToFillStart(mAnchorInfo);                                                
-        mLayoutState.mExtra = extraForStart;                                                      
-        fill(recycler, mLayoutState, state, false);                                               
-        startOffset = mLayoutState.mOffset;                                                       
-        final int firstElement = mLayoutState.mCurrentPosition;                                   
-        if (mLayoutState.mAvailable > 0) {                                                        
-            extraForEnd += mLayoutState.mAvailable;                                               
-        }                                                                                         
-        // fill towards end                                                                       
-        updateLayoutStateToFillEnd(mAnchorInfo);                                                  
-        mLayoutState.mExtra = extraForEnd;                                                        
-        mLayoutState.mCurrentPosition += mLayoutState.mItemDirection;                             
-        fill(recycler, mLayoutState, state, false);                                               
-        endOffset = mLayoutState.mOffset;                                                         
-                                                                                                  
-        if (mLayoutState.mAvailable > 0) {                                                        
-            // end could not consume all. add more items towards start                            
-            extraForStart = mLayoutState.mAvailable;                                              
-            updateLayoutStateToFillStart(firstElement, startOffset);                              
-            mLayoutState.mExtra = extraForStart;                                                  
-            fill(recycler, mLayoutState, state, false);                                           
-            startOffset = mLayoutState.mOffset;                                                   
-        }                                                                                         
+        //省略。。。                                               
     } else {                                                                                      
-        // fill towards end                                                                       
+      	//从锚点向终点 fill
         updateLayoutStateToFillEnd(mAnchorInfo);                                                  
         mLayoutState.mExtra = extraForEnd;                                                        
         fill(recycler, mLayoutState, state, false);                                               
@@ -629,7 +608,7 @@ public void onLayoutChildren(RecyclerView.Recycler recycler, RecyclerView.State 
         if (mLayoutState.mAvailable > 0) {                                                        
             extraForStart += mLayoutState.mAvailable;                                             
         }                                                                                         
-        // fill towards start                                                                     
+        // 从锚点向起点 fill                                                                     
         updateLayoutStateToFillStart(mAnchorInfo);                                                
         mLayoutState.mExtra = extraForStart;                                                      
         mLayoutState.mCurrentPosition += mLayoutState.mItemDirection;                             
@@ -637,8 +616,9 @@ public void onLayoutChildren(RecyclerView.Recycler recycler, RecyclerView.State 
         startOffset = mLayoutState.mOffset;                                                       
                                                                                                   
         if (mLayoutState.mAvailable > 0) {                                                        
-            extraForEnd = mLayoutState.mAvailable;                                                
-            // start could not consume all it should. add more items towards end                  
+            extraForEnd = mLayoutState.mAvailable;
+          	//
+            // 起点 fill 没有消费完. 向终点添加更多 items                 
             updateLayoutStateToFillEnd(lastElement, endOffset);                                   
             mLayoutState.mExtra = extraForEnd;                                                    
             fill(recycler, mLayoutState, state, false);                                           
@@ -646,9 +626,8 @@ public void onLayoutChildren(RecyclerView.Recycler recycler, RecyclerView.State 
         }                                                                                         
     }                                                                                             
                                                                                                   
-    // changes may cause gaps on the UI, try to fix them.                                         
-    // TODO we can probably avoid this if neither stackFromEnd/reverseLayout/RTL values have      
-    // changed                                                                                    
+    //这些改变可能回导致 UI 空白，尝试去修复它们。
+  	// TODO 如果 stackFromEnd/reverseLayout/RTL 值没有发生变化，我们可以避免这个问题。
     if (getChildCount() > 0) {                                                                    
         // because layout from end may be changed by scroll to position                           
         // we re-calculate it.                                                                    
@@ -668,7 +647,8 @@ public void onLayoutChildren(RecyclerView.Recycler recycler, RecyclerView.State 
             startOffset += fixOffset;                                                             
             endOffset += fixOffset;                                                               
         }                                                                                         
-    }                                                                                             
+    }
+  	// 如果有必要，为预测动画布局 items。
     layoutForPredictiveAnimations(recycler, state, startOffset, endOffset);                       
     if (!state.isPreLayout()) {                                                                   
         mOrientationHelper.onLayoutComplete();                                                    
@@ -680,5 +660,173 @@ public void onLayoutChildren(RecyclerView.Recycler recycler, RecyclerView.State 
         validateChildOrder();                                                                     
     }                                                                                             
 }                                                                                                 
+```
+
+``` java
+/**
+* 这是个有魔力的方法。根据定义的 layoutState 填充布局。这独立与 LinearLayoutManager 的其余部分，并且几乎没有变化，可以作为辅助类公开提供。 
+*/
+int fill(RecyclerView.Recycler recycler, LayoutState layoutState,                              
+        RecyclerView.State state, boolean stopOnFocusable) {                                   
+    // max offset we should set is mFastScroll + available                                     
+    final int start = layoutState.mAvailable;                                                  
+    if (layoutState.mScrollingOffset != LayoutState.SCROLLING_OFFSET_NaN) {                    
+        // TODO ugly bug fix. should not happen                                                
+        if (layoutState.mAvailable < 0) {                                                      
+            layoutState.mScrollingOffset += layoutState.mAvailable;                            
+        }
+      	// 根据 layout state 回收 view
+        recycleByLayoutState(recycler, layoutState);                                           
+    }
+  	//可填充的剩余空间
+    int remainingSpace = layoutState.mAvailable + layoutState.mExtra;                          
+    LayoutChunkResult layoutChunkResult = mLayoutChunkResult;                                  
+    while ((layoutState.mInfinite || remainingSpace > 0) && layoutState.hasMore(state)) {
+      	//while 循环，将可用的 layout 值消费完。
+      	// 重置 LayoutChunkResult
+        layoutChunkResult.resetInternal();                                                     
+        if (VERBOSE_TRACING) {                                                                 
+            TraceCompat.beginSection("LLM LayoutChunk");                                       
+        }
+      	// 对 view 进行填充布局的方法（核心方法）
+        layoutChunk(recycler, state, layoutState, layoutChunkResult);                          
+        if (VERBOSE_TRACING) {                                                                 
+            TraceCompat.endSection();                                                          
+        }                                                                                      
+        if (layoutChunkResult.mFinished) {                                                     
+            break;                                                                             
+        }
+      	// 记录这次填充消费的
+        layoutState.mOffset += layoutChunkResult.mConsumed * layoutState.mLayoutDirection;     
+        // 消费可用空间：
+        // * layoutChunk request 没有被忽略。
+      	// * 或者我们正在 laying out scrap child
+        // * 或者我们没有进行 pre-layout
+        if (!layoutChunkResult.mIgnoreConsumed || mLayoutState.mScrapList != null              
+                || !state.isPreLayout()) {
+          	//消费可用空间
+            layoutState.mAvailable -= layoutChunkResult.mConsumed;                             
+            // we keep a separate remaining space because mAvailable is important for recycling
+            remainingSpace -= layoutChunkResult.mConsumed;                                     
+        }                                                                                      
+                                                                                               
+        if (layoutState.mScrollingOffset != LayoutState.SCROLLING_OFFSET_NaN) {                
+            layoutState.mScrollingOffset += layoutChunkResult.mConsumed;                       
+            if (layoutState.mAvailable < 0) {                                                  
+                layoutState.mScrollingOffset += layoutState.mAvailable;                        
+            }                                                                                  
+            recycleByLayoutState(recycler, layoutState);                                       
+        }                                                                                      
+        if (stopOnFocusable && layoutChunkResult.mFocusable) {
+          	//stopOnFocusable 为 true 表示：填充到第一个焦点 child
+            break;                                                                             
+        }                                                                                      
+    }                                                                                          
+    if (DEBUG) {                                                                               
+        validateChildOrder();                                                                  
+    }                                                                                          
+    return start - layoutState.mAvailable;                                                     
+}                                                                                              
+```
+
+``` java
+void layoutChunk(RecyclerView.Recycler recycler, RecyclerView.State state,                 
+        LayoutState layoutState, LayoutChunkResult result) {
+  	// next 获取一个可用的 view
+  	// 这个方法是获取缓存 view 的关键。
+    View view = layoutState.next(recycler);                                                
+    if (view == null) {                                                                    
+        if (DEBUG && layoutState.mScrapList == null) {                                     
+            throw new RuntimeException("received null view when unexpected");              
+        }                                                                                  
+        // 如果我们在 laying out viess in scrap，这可能会返回 null，表示当前没有更多 item 去 layout。                                                       
+        result.mFinished = true;                                                           
+        return;                                                                            
+    }                                                                                      
+    LayoutParams params = (LayoutParams) view.getLayoutParams();                           
+    if (layoutState.mScrapList == null) {
+      	//当 LinearLayoutManager 需要 layout 特定的 viewsa,mScrapList 就会被设置，layout state 将只会返回这些 views，并且如果不能找到 item，则返回 null。
+        if (mShouldReverseLayout == (layoutState.mLayoutDirection                          
+                == LayoutState.LAYOUT_START)) {
+          	// 添加 view
+            addView(view);                                                                 
+        } else {
+          	// 添加 view
+            addView(view, 0);                                                              
+        }                                                                                  
+    } else {                                                                               
+        if (mShouldReverseLayout == (layoutState.mLayoutDirection                          
+                == LayoutState.LAYOUT_START)) {
+          	//添加消失的 view
+            addDisappearingView(view);                                                     
+        } else {
+            //添加消失的 view
+            addDisappearingView(view, 0);                                                  
+        }                                                                                  
+    }
+  	// 测量
+    measureChildWithMargins(view, 0, 0);
+  	// 消费布局空间
+    result.mConsumed = mOrientationHelper.getDecoratedMeasurement(view);
+  	// 计算位置
+    int left, top, right, bottom;                                                          
+    if (mOrientation == VERTICAL) {                                                        
+        if (isLayoutRTL()) {                                                               
+            right = getWidth() - getPaddingRight();                                        
+            left = right - mOrientationHelper.getDecoratedMeasurementInOther(view);        
+        } else {                                                                           
+            left = getPaddingLeft();                                                       
+            right = left + mOrientationHelper.getDecoratedMeasurementInOther(view);        
+        }                                                                                  
+        if (layoutState.mLayoutDirection == LayoutState.LAYOUT_START) {                    
+            bottom = layoutState.mOffset;                                                  
+            top = layoutState.mOffset - result.mConsumed;                                  
+        } else {                                                                           
+            top = layoutState.mOffset;                                                     
+            bottom = layoutState.mOffset + result.mConsumed;                               
+        }                                                                                  
+    } else {                                                                               
+        top = getPaddingTop();                                                             
+        bottom = top + mOrientationHelper.getDecoratedMeasurementInOther(view);            
+                                                                                           
+        if (layoutState.mLayoutDirection == LayoutState.LAYOUT_START) {                    
+            right = layoutState.mOffset;                                                   
+            left = layoutState.mOffset - result.mConsumed;                                 
+        } else {                                                                           
+            left = layoutState.mOffset;                                                    
+            right = layoutState.mOffset + result.mConsumed;                                
+        }                                                                                  
+    }                                                                                      
+    // 我们使用 view 的边界框来计算（包括 decor 和 外边距）
+  	// 所以要计算正确的 layout 位置，我们需要减去 外边距。
+  	// layout
+    layoutDecoratedWithMargins(view, left, top, right, bottom);                            
+    if (DEBUG) {                                                                           
+        Log.d(TAG, "laid out child at position " + getPosition(view) + ", with l:"         
+                + (left + params.leftMargin) + ", t:" + (top + params.topMargin) + ", r:"  
+                + (right - params.rightMargin) + ", b:" + (bottom - params.bottomMargin)); 
+    }                                                                                      
+    // 如果 view 没有被删除或者改变，消费可用的空间。                 
+    if (params.isItemRemoved() || params.isItemChanged()) {                                
+        result.mIgnoreConsumed = true;                                                     
+    }
+  	// 记录焦点。
+    result.mFocusable = view.hasFocusable();                                               
+}
+
+/**
+ * 获取我们应该 layout 的下一个元素的 view
+ * 并且更新当前索引到下一个 item，根据 mItemDirection 
+ */
+View next(RecyclerView.Recycler recycler) {                                          
+    if (mScrapList != null) {
+      	// scrap 不等于 null，从中检索 view
+        return nextViewFromScrapList();                                              
+    }
+  	//根据当前索引获取 view，这里实现了缓存逻辑
+    final View view = recycler.getViewForPosition(mCurrentPosition);                 
+    mCurrentPosition += mItemDirection;                                              
+    return view;                                                                     
+}                                                                                    
 ```
 
