@@ -1,6 +1,14 @@
 ## Measure, Layout and Draw
 
+> measure 和 layout 核心方法为三个步骤：`dispatchLayoutStep1`，`dispatchLayoutStep2`，`dispatchLauoutStep3`。
+>
+> * dispatchLayoutStep1：是 pre-layout，收集当前 layout item 的信息，包括 FLAG_DISAPPEARED，FLAG_APPEAR，FLAG_PRE 三种情况。
+> * dispatchLayoutStep2：是 actual-layout，真正进行 layout。
+> * dispatchLayoutStep3：是 post-layout，根据 pre-layout 收集的 item 信息，处理 item 动画。
+
 ### Measure
+
+onMeasure -> dispatchLayoutStep1 -> dispatchLayoutStep2
 
 ``` java
 @Override                                                                                       
@@ -110,11 +118,11 @@ void defaultOnMeasure(int widthSpec, int heightSpec) {
 
 ``` java
 /**                                                                                             
- * The first step of a layout where we;                                                         
- * - process adapter updates                                                                    
- * - decide which animation should run                                                          
- * - save information about current views                                                       
- * - If necessary, run predictive layout and save its information                               
+ * 在 layout 的第一个步骤中，我们进行了：                                                         
+ * - 处理 adapter 更新                                                                    
+ * - 决定哪些动画应该运行                                                          
+ * - 保存当前 views 的信息。                                                       
+ * - 如果需要，运行 predictive layout 并且保存它的信息。                             
  */                                                                                             
 private void dispatchLayoutStep1() {                                                            
   	//校验状态值
@@ -142,7 +150,7 @@ private void dispatchLayoutStep1() {
                                                                                                 
     if (mState.mRunSimpleAnimations) {                                                          
       	//需要执行动画
-        // Step 0: Find out where all non-removed items are, pre-layout                         
+        // 步骤 0: pre-layout 中没有被删除的 item。                         
         int count = mChildHelper.getChildCount();                                               
         for (int i = 0; i < count; ++i) {                                                       
             final ViewHolder holder = getChildViewHolderInt(mChildHelper.getChildAt(i));        
@@ -154,28 +162,30 @@ private void dispatchLayoutStep1() {
                     .recordPreLayoutInformation(mState, holder,                                 
                             ItemAnimator.buildAdapterChangeFlagsForAnimations(holder),          
                             holder.getUnmodifiedPayloads());                                    
-          	//保存 view 动画缓存
+          	//将 holder 标记为 FLAG_PRE 保存。
             mViewInfoStore.addToPreLayout(holder, animationInfo);                               
             if (mState.mTrackOldChangeHolders && holder.isUpdated() && !holder.isRemoved()      
                     && !holder.shouldIgnore() && !holder.isInvalid()) {                         
-                long key = getChangedHolderKey(holder);                                         
+                long key = getChangedHolderKey(holder);
+              	// 当前 viewholder 被更新。
                 // 这不是唯一将 ViewHolder 添加到 oldChangeHolders 的地方。
-              	// * ViewHoldr 当前隐藏或者没被删除。
+              	// * ViewHoldr 当前隐藏但是没被删除。
               	// * 在 Adapter 中的 隐藏的 item 被改变。
               	// * LayoutManager 决定在 pre-layout 步骤中 layout item。
-              	//将给定的 ViewHolder 添加到 oldChangeHolders
+              	//在这种情况下，RecyclerView 将不隐藏 view，并且将它添加到 old change holders list。
+              	// 这里保存的 old change holders list 将在 dispatchLayoutStep3 中被使用。
                 mViewInfoStore.addToOldChangeHolders(key, holder);                              
             }                                                                                   
         }                                                                                       
     }                                                                                           
-    if (mState.mRunPredictiveAnimations) {                                                      
-                                                                                         
-        //第一步：运行 pre-layout：这将使用 old positions of items。LayoutMananger 将布置一切，甚至包括删除 item（尽管不会将删除的 item 添加回容器）。这给出了作为 real layout 的一部分 APPEARING views 的 pre-layout position。
-      	// 保存 old positions，所以 LayoutManager 可以执行它的映射逻辑。
+    if (mState.mRunPredictiveAnimations) {                                                                                                          
+        //步骤 1：运行 pre-layout：这将使用 old positions of items。LayoutMananger 将布置一切，甚至包括删除 item（尽管不会将删除的 item 添加回容器）。这给出了作为 real layout 的一部分 APPEARING views 的 pre-layout position（为即将出现的 item 预先布局）。
+      	// 保存 old positions，在 pre-layout 之后，执行计算动画逻辑。
         saveOldPositions();                                                                     
         final boolean didStructureChange = mState.mStructureChanged;                            
         mState.mStructureChanged = false;                                                       
       	//暂时禁用 mStructureChanged flag，因为我们要求之前的布局
+      	// 在 pre-layout 的情况下，调用 onLayoutChildren
         mLayout.onLayoutChildren(mRecycler, mState);                                            
         mState.mStructureChanged = didStructureChange;                                          
                                                                                                 
@@ -186,8 +196,7 @@ private void dispatchLayoutStep1() {
                 continue;                                                                       
             }                                                                                   
             if (!mViewInfoStore.isInPreLayout(viewHolder)) {                                    
-              	//ViewHolder 不在 pre-layout 中
-              	//构建 change flags
+              	// 不是之前就存在的 view。
                 int flags = ItemAnimator.buildAdapterChangeFlagsForAnimations(viewHolder);      
                 boolean wasHidden = viewHolder                                                  
                         .hasAnyOfTheFlags(ViewHolder.FLAG_BOUNCED_FROM_HIDDEN_LIST);            
@@ -198,11 +207,11 @@ private void dispatchLayoutStep1() {
               	//调用 ItemAnimator.recordPreLayoutInfomation，记录运行动画所需的信息
                 final ItemHolderInfo animationInfo = mItemAnimator.recordPreLayoutInformation(  
                         mState, viewHolder, flags, viewHolder.getUnmodifiedPayloads());         
-                if (wasHidden) {                                                                
+                if (wasHidden) {
                   	//当前为隐藏状态，记录从隐藏列表中出现的动画信息，并且清除隐藏标记。
                     recordAnimationInfoIfBouncedHiddenView(viewHolder, animationInfo);          
                 } else {
-                  	//将 ViewHolder 添加到已出现的 pre-layout 列表中。
+                  	//将 ViewHolder 标记为 FLAG_APPEAR 保存。
                     mViewInfoStore.addToAppearedInPreLayoutHolders(viewHolder, animationInfo);  
                 }                                                                               
             }                                                                                   
@@ -223,8 +232,8 @@ private void dispatchLayoutStep1() {
 
 ``` java
 /**                                                                                      
- * The second layout step where we do the actual layout of the views for the final state.
- * This step might be run multiple times if necessary (e.g. measure).                    
+ * 第二次步骤是我们为 views 的最终状态做真正的 layout 操作。
+ * 这个步骤在必要的时候可能会被调用多次。（比如：measure）                   
  */                                                                                      
 private void dispatchLayoutStep2() {
   	//和步骤 1 一样，校验，设置 layout flags
@@ -237,7 +246,7 @@ private void dispatchLayoutStep2() {
     mState.mItemCount = mAdapter.getItemCount();                                         
     mState.mDeletedInvisibleItemCountSincePreviousLayout = 0;                            
                                                                                          
-    // 执行 layout                                                                
+    // 执行真正的 layout
     mState.mInPreLayout = false;                                                         
     mLayout.onLayoutChildren(mRecycler, mState);                                         
                                                                                          
@@ -310,7 +319,8 @@ void dispatchLayout() {
 ```
 
 ``` java
-/**                                                                                              
+/**
+* 和 dispatchLayoutStep1 的 pre-layout 对应的 post-layout
 * layout 的最后一步，我们保存关于 view 动画的信息，触发动画，并且执行并要的清理。
 */
 private void dispatchLayoutStep3() {                                                             
@@ -360,7 +370,7 @@ private void dispatchLayoutStep3() {
                     }                                                                            
                 }                                                                                
             } else {                                                                             
-              	//layout 之前不存在。
+              	//新添加的 holder，作为 FLAG_POST 记录。
                 mViewInfoStore.addToPostLayout(holder, animationInfo);                           
             }                                                                                    
         }                                                                                        
@@ -415,8 +425,6 @@ public void onDraw(Canvas c) {
     }                                                          
 }                                                              
 ```
-
-
 
 ## LayoutManager（LinearLayoutManager）
 
@@ -743,12 +751,13 @@ void layoutChunk(RecyclerView.Recycler recycler, RecyclerView.State state,
         result.mFinished = true;                                                           
         return;                                                                            
     }                                                                                      
-    LayoutParams params = (LayoutParams) view.getLayoutParams();                           
+    LayoutParams params = (LayoutParams) view.getLayoutParams();
+   //当 LinearLayoutManager 需要 layout 特定的 views,mScrapList 就会被设置，layout   state 将只会返回这些 views，并且如果不能找到 item，则返回 null。
+       // layoutState.mScrapList 会在 layoutForPredictiveAnimations() 中被设置。
     if (layoutState.mScrapList == null) {
-      	//当 LinearLayoutManager 需要 layout 特定的 viewsa,mScrapList 就会被设置，layout state 将只会返回这些 views，并且如果不能找到 item，则返回 null。
+      	// addView 中会
         if (mShouldReverseLayout == (layoutState.mLayoutDirection                          
                 == LayoutState.LAYOUT_START)) {
-          	// 添加 view
             addView(view);                                                                 
         } else {
           	// 添加 view
@@ -806,8 +815,9 @@ void layoutChunk(RecyclerView.Recycler recycler, RecyclerView.State state,
                 + (left + params.leftMargin) + ", t:" + (top + params.topMargin) + ", r:"  
                 + (right - params.rightMargin) + ", b:" + (bottom - params.bottomMargin)); 
     }                                                                                      
-    // 如果 view 没有被删除或者改变，消费可用的空间。                 
-    if (params.isItemRemoved() || params.isItemChanged()) {                                
+                   
+    if (params.isItemRemoved() || params.isItemChanged()) {
+      	// 如果当前是为 removed item 或者 changed item 进行 layout,那么忽略消费。
         result.mIgnoreConsumed = true;                                                     
     }
   	// 记录焦点。
@@ -828,5 +838,61 @@ View next(RecyclerView.Recycler recycler) {
     mCurrentPosition += mItemDirection;                                              
     return view;                                                                     
 }                                                                                    
+```
+
+``` java
+private void addViewInt(View child, int index, boolean disappearing) {                      
+    final ViewHolder holder = getChildViewHolderInt(child);                                 
+    if (disappearing || holder.isRemoved()) {                                               
+        // 将 holder 标记为 FLAG_DISAPPEARED 保存。                       
+        mRecyclerView.mViewInfoStore.addToDisappearedInLayout(holder);                      
+    } else {                                                                                
+        // 如果 layout manager 支持 predictive layouts，并且 adapter 删除后又重新添加相同的 item。在这种情况下，已添加的版本将在 post layout 中可见（因为添加操作是延迟的）但是 RecyclerView 让将它 bind 到相同的 view。所以如果 view 在 post layout 是 re-appears，那么将它在 disappearing list 中删除。 
+        mRecyclerView.mViewInfoStore.removeFromDisappearedInLayout(holder);                 
+    }                                                                                       
+    final LayoutParams lp = (LayoutParams) child.getLayoutParams();                         
+    if (holder.wasReturnedFromScrap() || holder.isScrap()) {
+      	// 清除 scrap
+        if (holder.isScrap()) {                                                             
+            holder.unScrap();                                                               
+        } else {                                                                            
+            holder.clearReturnedFromScrapFlag();                                            
+        }
+      	// 重新 attach 到 RecyclerViw 中
+        mChildHelper.attachViewToParent(child, index, child.getLayoutParams(), false);      
+        if (DISPATCH_TEMP_DETACH) {                                                         
+            ViewCompat.dispatchFinishTemporaryDetach(child);                                
+        }                                                                                   
+    } else if (child.getParent() == mRecyclerView) {
+      	// 如果这不是一个 scrap view，而是一个有效的 child，那么确保正确的 position。
+        int currentIndex = mChildHelper.indexOfChild(child);                                
+        if (index == -1) {                                                                  
+            index = mChildHelper.getChildCount();                                           
+        }                                                                                   
+        if (currentIndex == -1) {                                                           
+            throw new IllegalStateException("Added View has RecyclerView as parent but"     
+                    + " view is not a real child. Unfiltered index:"                        
+                    + mRecyclerView.indexOfChild(child) + mRecyclerView.exceptionLabel());  
+        }                                                                                   
+        if (currentIndex != index) {                                                        
+            mRecyclerView.mLayout.moveView(currentIndex, index);                            
+        }                                                                                   
+    } else {
+      	// 还没添加到 RecyclerView 中
+      	// 添加到 RecyclerView 中。
+        mChildHelper.addView(child, index, false);                                          
+        lp.mInsetsDirty = true;                                                             
+        if (mSmoothScroller != null && mSmoothScroller.isRunning()) {                       
+            mSmoothScroller.onChildAttachedToWindow(child);                                 
+        }                                                                                   
+    }                                                                                       
+    if (lp.mPendingInvalidate) {                                                            
+        if (DEBUG) {                                                                        
+            Log.d(TAG, "consuming pending invalidate on child " + lp.mViewHolder);          
+        }                                                                                   
+        holder.itemView.invalidate();                                                       
+        lp.mPendingInvalidate = false;                                                      
+    }                                                                                       
+}                                                                                           
 ```
 

@@ -164,3 +164,98 @@ ItemDecoration 允许应用添加一个特定的绘图和布局，从 adapter �
 ItemAnimator 的子类可以对 ViewHolder 上的操作，实现自定义的动画。RecyclerView 将在动画开始时，管理保留这些 items，不过实现者必须在动画结束时，调用 `dispatchAnimationFinished(ViewHolder)`。换句话说，在每次 `animateAppearance(ViewHolder,ItemHolderInfo,ItemHolderInfo)`，`animateChange(ViewHolder,ViewHolder,ItemHolderInfo,ItemHolder)`，`animatePersistence(ViewHolder,ItemHolderInfo,ItemHolderInfo)`，和 `animateDisappearance(ViewHolder,ItemHolderInfo,ItemHolderInfo)` 调用 `dispatchAnimationFinished()`。
 
 默认情况下，RecyclerView 将使用 `DefaultItemAnimator`。
+
+
+
+### Other
+
+> [引用](https://zhuanlan.zhihu.com/p/24807254)
+>
+> ### Layout Manager
+>
+> LayoutManager负责RecyclerView的布局，其中包含了Item View的获取与回收。这里我们简单分析LinearLayoutManager的实现。
+>
+> 对于LinearLayoutManager来说，比较重要的几个方法有：
+>
+> - onLayoutChildren(): 对RecyclerView进行布局的入口方法。
+> - fill(): 负责填充RecyclerView。
+> - scrollVerticallyBy():根据手指的移动滑动一定距离，并调用fill()填充。
+> - canScrollVertically()或canScrollHorizontally(): 判断是否支持纵向滑动或横向滑动。
+>
+> onLayoutChildren()的核心实现如下：
+>
+> ```java
+>  public void onLayoutChildren(RecyclerView.Recycler recycler, RecyclerView.State state) {
+>      detachAndScrapAttachedViews(recycler); //将原来所有的Item View全部放到Recycler的Scrap Heap或Recycle Pool
+>      fill(recycler, mLayoutState, state, false); //填充现在所有的Item View
+>  }
+>
+> ```
+>
+> RecyclerView的回收机制有个重要的概念，即将回收站分为Scrap Heap和Recycle Pool，其中Scrap Heap的元素可以被直接复用，而不需要调用onBindViewHolder()。detachAndScrapAttachedViews()会根据情况，将原来的Item View放入Scrap Heap或Recycle Pool，从而在复用时提升效率。
+>
+> fill()是对剩余空间不断地调用layoutChunk()，直到填充完为止。layoutChunk()的核心实现如下：
+>
+> ```java
+>  public void layoutChunk() {
+>      View view = layoutState.next(recycler); //调用了getViewForPosition()
+>      addView(view);  //加入View
+>      measureChildWithMargins(view, 0, 0); //计算View的大小
+>      layoutDecoratedWithMargins(view, left, top, right, bottom); //布局View
+>  }
+>
+> ```
+>
+> 其中next()调用了getViewForPosition(currentPosition)，该方法是从RecyclerView的回收机制实现类Recycler中获取合适的View，在后文的回收机制中会介绍该方法的具体实现。
+>
+> 如果要自定义LayoutManager，可以参考：
+>
+> - [创建一个 RecyclerView LayoutManager – Part 1](http://link.zhihu.com/?target=https%3A//github.com/hehonghui/android-tech-frontier/blob/master/issue-9/%25E5%2588%259B%25E5%25BB%25BA-RecyclerView-LayoutManager-Part-1.md)
+> - [创建一个 RecyclerView LayoutManager – Part 2](http://link.zhihu.com/?target=https%3A//github.com/hehonghui/android-tech-frontier/blob/master/issue-13/%25E5%2588%259B%25E5%25BB%25BA-RecyclerView-LayoutManager-Part-2.md)
+> - [创建一个 RecyclerView LayoutManager – Part 3](http://link.zhihu.com/?target=https%3A//github.com/hehonghui/android-tech-frontier/blob/master/issue-13/%25E5%2588%259B%25E5%25BB%25BA-RecyclerView-LayoutManager-Part-3.md)
+>
+> ### RecyclerView回收机制
+>
+> RecyclerView和ListView的回收机制非常相似，但是ListView是以View作为单位进行回收，RecyclerView是以ViewHolder作为单位进行回收。Recycler是RecyclerView回收机制的实现类，他实现了四级缓存：
+>
+> - mAttachedScrap: 缓存在屏幕上的ViewHolder。
+> - mCachedViews: 缓存屏幕外的ViewHolder，默认为2个。ListView对于屏幕外的缓存都会调用getView()。
+> - mViewCacheExtensions: 需要用户定制，默认不实现。
+> - mRecyclerPool: 缓存池，多个RecyclerView共用。
+>
+> 在上文Layout Manager中已经介绍了RecyclerView的layout过程，但是一笔带过了getViewForPosition()，因此此处介绍该方法的实现。
+>
+> ```java
+>  View getViewForPosition(int position, boolean dryRun){
+>      if(holder == null){
+>          //从mAttachedScrap,mCachedViews获取ViewHolder
+>          holder = getScrapViewForPosition(position,INVALID,dryRun); //此处获得的View不需要bind
+>      }
+>      final int type = mAdapter.getItemViewType(offsetPosition);
+>      if (mAdapter.hasStableIds()) { //默认为false
+>          holder = getScrapViewForId(mAdapter.getItemId(offsetPosition), type, dryRun);
+>      }
+>      if(holder == null && mViewCacheExtension != null){
+>          final View view = mViewCacheExtension.getViewForPositionAndType(this, position, type); //从
+>          if(view != null){
+>              holder = getChildViewHolder(view);
+>          }
+>      }
+>      if(holder == null){
+>          holder = getRecycledViewPool().getRecycledView(type);
+>      }
+>      if(holder == null){  //没有缓存，则创建
+>          holder = mAdapter.createViewHolder(RecyclerView.this, type); //调用onCreateViewHolder()
+>      }
+>      if(!holder.isBound() || holder.needsUpdate() || holder.isInvalid()){
+>          mAdapter.bindViewHolder(holder, offsetPosition);
+>      }
+>      return holder.itemView;
+>  }
+>
+> ```
+>
+> 从上述实现可以看出，依次从mAttachedScrap, mCachedViews, mViewCacheExtension, mRecyclerPool寻找可复用的ViewHolder，如果是从mAttachedScrap或mCachedViews中获取的ViewHolder，则不会调用onBindViewHolder()，mAttachedScrap和mCachedViews也就是我们所说的Scrap Heap；而如果从mViewCacheExtension或mRecyclerPool中获取的ViewHolder，则会调用onBindViewHolder()。
+>
+> RecyclerView局部刷新的实现原理也是基于RecyclerView的回收机制，即能直接复用的ViewHolder就不调用onBindViewHolder()。
+

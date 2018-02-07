@@ -31,7 +31,8 @@ ViewHolder tryGetViewHolderForPositionByDeadline(int position,
     ViewHolder holder = null;                                                              
     // 0) 如果存在 changed scrap，从中寻找。                             
     if (mState.isPreLayout()) {                                                            
-        holder = getChangedScrapViewForPosition(position);                                 
+        holder = getChangedScrapViewForPosition(position);
+      	// 设置 fromScrapOrHiddenOrCache = true 
         fromScrapOrHiddenOrCache = holder != null;                                         
     }                                                                                      
     // 1) 通过 position，从 attach scrap，hidden child 或者 cache 中寻找。                              
@@ -232,11 +233,34 @@ private boolean tryBindViewHolderByDeadline(ViewHolder holder, int offsetPositio
 
 0. 如果 `pre-layout = true`，则从 `Recycler.mChangedScrap` 中获取。
 1. 先从 `Recycler.mAttachedScrap` 中根据 position 获取，如果不存在，当 `dryRun = false` 则从 `ChildHelper.mHiddenViews` 中获取。如果不存在，则从 `Recycler.mCachedViews` 中获取。
-2. 如果 `Adapter.hasStableIds() = true`，则通过 id 从 `Recycler.mAttachedScrap` 中获取。如果不存在，当 `ViewCacheExtension != null`，则从 ViewCacheExtension 中获取。如果不存在，则从 `RecyclerPool` 中获取。
+2. 如果 `Adapter.hasStableIds() = true`，则通过 id 从 `Recycler.mAttachedScrap` 或 `Recycler.mCachedViews` 中获取。如果不存在，当 `ViewCacheExtension != null`，则从 ViewCacheExtension 中获取。如果不存在，则从 `RecyclerPool` 中获取。
 
 以上步骤后，还没能获取 viewholder，则调用 `Adapter.onCreateViewHoler`。
 
 ### Recycle
+
+基于 LinearLayoutManager 分析。
+
+调用链：
+
+LLM.onLayoutChildren() -> LM.detachAndScrapAttachedViews() -> LM.scrapOrRecycleView()
+
+-> Recycler.recycleViewHolerInternal() / Recycler.scrapView()
+
+``` java
+/**                                                                                        
+ * 临时 detach nad scrap 当前所有 attached child views。 Views 将 scrapped 到给定的      Recycler。相对于 recycled views，Recycler 更偏向复用 scrap views，                                              
+ *                                                                                                                                 
+ */                                                                                        
+public void detachAndScrapAttachedViews(Recycler recycler) {                               
+    final int childCount = getChildCount();                                                
+    for (int i = childCount - 1; i >= 0; i--) {
+      	// 将当前 attach views 都调用 scrap or recycle
+        final View v = getChildAt(i);                                                      
+        scrapOrRecycleView(recycler, i, v);                                                
+    }                                                                                      
+}                                                                                          
+```
 
 ``` java
 // LayoutManager
@@ -250,7 +274,7 @@ private void scrapOrRecycleView(Recycler recycler, int index, View view) {
     }                                                                      
     if (viewHolder.isInvalid() && !viewHolder.isRemoved()                  
             && !mRecyclerView.mAdapter.hasStableIds()) {
-      	// viewholer 有效，viewholer 没有被删除，并且 adapter 拥有稳定的 ids。
+      	// viewholer 无效，viewholer 没有被删除，并且 adapter 没有稳定的 ids。
       	// remove	
         removeViewAt(index);                                               
       	// recycle
@@ -268,9 +292,15 @@ private void scrapOrRecycleView(Recycler recycler, int index, View view) {
 
 #### recycle
 
+> recycle 包含存放在 mCachedViews 和 RecyclerPool 中的 views。
+>
+> * mCachedViews：是作为 RecyclerView 预先缓存的可能出现在下一个可见区域的 view。不需要重新 bind，但是还没有添加到  RecyclerViwe 中，在 addViewInt 方法中会将它添加到 RecyclerView。
+> * RecyclerPool：
+
 ``` java
 /**
  * Recycler
+ * 1.cached：
  * 优先缓存到 cached，否则放到 RecyclerViewPool 
 **/
 void recycleViewHolderInternal(ViewHolder holder) {                                           
@@ -317,7 +347,10 @@ void recycleViewHolderInternal(ViewHolder holder) {
                 | ViewHolder.FLAG_ADAPTER_POSITION_UNKNOWN)) {
           	// 优先淘汰最早的 cached view
             int cachedViewSize = mCachedViews.size();                                         
-            if (cachedViewSize >= mViewCacheMax && cachedViewSize > 0) {                      
+            if (cachedViewSize >= mViewCacheMax && cachedViewSize > 0) {
+              	// 将其 recycle
+              	// 1. 从 cached views 中删除
+              	// 2. 放入 recycle pool
                 recycleCachedViewAt(0);                                                       
                 cachedViewSize--;                                                             
             }                                                                                 
@@ -394,6 +427,8 @@ void addViewHolderToRecycledViewPool(ViewHolder holder, boolean dispatchRecycled
 
 #### scrap
 
+> scrap view 会 detach from RecyclerView，在 addViewInt 中会重新 attach to RecyclerView。                                                                                    
+
 ``` java
 /* 
  * LayoutManager
@@ -448,6 +483,30 @@ private void detachViewInternal(int index, View view) {
          mChangedScrap.add(holder);                                                          
      }                                                                                       
  }                                                                                           
+```
+
+#### unScrap
+
+``` java
+/**                                                                       
+ * 从相对应的 scrap 中删除先前的 scrapped view。     
+ *                                                                        
+ * <p>这个 view 将不再被复用直到 re-scrapped 或者 它被明确的 removed 和 recycled。 
+ * </p>                       
+ */                                                                       
+void unscrapView(ViewHolder holder) {                                     
+    if (holder.mInChangeScrap) {
+      	// 从 change scrap 中复用
+        mChangedScrap.remove(holder);                                     
+    } else {
+      	// 从 attach scrap 中复用
+        mAttachedScrap.remove(holder);                                    
+    }
+  	// 清除 scrap 标记。
+    holder.mScrapContainer = null;                                        
+    holder.mInChangeScrap = false;                                        
+    holder.clearReturnedFromScrapFlag();                                  
+}                                                                         
 ```
 
 
