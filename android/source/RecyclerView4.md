@@ -297,10 +297,10 @@ private void scrapOrRecycleView(Recycler recycler, int index, View view) {
 > * mCachedViews：是作为 RecyclerView 预先缓存的可能出现在下一个可见区域的 view。不需要重新 bind，但是还没有添加到  RecyclerViwe 中，在 addViewInt 方法中会将它添加到 RecyclerView。
 > * RecyclerPool：
 
+#### recycleViewHolderInternal
+
 ``` java
 /**
- * Recycler
- * 1.cached：
  * 优先缓存到 cached，否则放到 RecyclerViewPool 
 **/
 void recycleViewHolderInternal(ViewHolder holder) {                                           
@@ -398,6 +398,8 @@ void recycleViewHolderInternal(ViewHolder holder) {
 }                                                                                             
 ```
 
+#### addViewHolderToRecycledViewPool
+
 ``` java
 /**
  * Recycler	
@@ -449,6 +451,8 @@ private void detachViewInternal(int index, View view) {
     mChildHelper.detachViewFromParent(index);                                              
 }                                                                                          
 ```
+
+#### scrapView
 
 ``` java
  /**                                                                                         
@@ -507,6 +511,30 @@ void unscrapView(ViewHolder holder) {
     holder.mInChangeScrap = false;                                        
     holder.clearReturnedFromScrapFlag();                                  
 }                                                                         
+```
+
+### RecycledViewPool
+
+RecycledViewPool 让我们可以在多个 RecyclerView 中共享 views。
+
+``` java
+/**                                                                                         
+ * 跟踪所有放入 pool 中的 holders，以及给定 type 的 viewholers 的创建/绑定 时间元数据。
+ *                                                                                          
+ * 记住这将跟踪使用这个 pool 的所有 RecyclerViews（包括，间接的，Adapters）。                    
+ *                                                                                          
+ * 1) 这使得我们能够跟踪多个 Adapters 的创建/绑定 viewholers 的平均时间。即使在不同的 adapter subclasses 创建（特别是绑定）ViewHolders 可能会有不同的行为。sharing the pool is a strong signal that they'll perform similarly, per type.
+ *                                                                                          
+ * 2) 如果 willBindInTime 在某个 view 上调用返回 false，那么它将对这个 viewType 在所有相同的 deadline 情况下，都返回 false。这可以防止 GapWorker 预取构建 item 被绑定到较低优先级的预取。
+ */
+
+//根据 viewType 对应存储的数据结构。
+static class ScrapData {                                                                    
+    ArrayList<ViewHolder> mScrapHeap = new ArrayList<>();                                   
+    int mMaxScrap = DEFAULT_MAX_SCRAP;                                                      
+    long mCreateRunningAverageNs = 0;                                                       
+    long mBindRunningAverageNs = 0;                                                         
+}                                                                                           
 ```
 
 

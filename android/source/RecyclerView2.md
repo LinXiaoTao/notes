@@ -116,6 +116,8 @@ void defaultOnMeasure(int widthSpec, int heightSpec) {
 }                                                                                              
 ```
 
+### dispatchLayoutStep1
+
 ``` java
 /**                                                                                             
  * 在 layout 的第一个步骤中，我们进行了：                                                         
@@ -230,6 +232,8 @@ private void dispatchLayoutStep1() {
 }                                                                                               
 ```
 
+### dispatchLayoutStep2
+
 ``` java
 /**                                                                                      
  * 第二次步骤是我们为 views 的最终状态做真正的 layout 操作。
@@ -317,6 +321,8 @@ void dispatchLayout() {
     dispatchLayoutStep3();                                                                    
 }                                                                                             
 ```
+
+### dispatchLayoutStep3
 
 ``` java
 /**
@@ -670,6 +676,185 @@ public void onLayoutChildren(RecyclerView.Recycler recycler, RecyclerView.State 
 }                                                                                                 
 ```
 
+### updateAnchorInfoForLayout
+
+> 计算锚点信息依据的顺序：
+>
+> mPendingScrollPosition > FocusedChild > ReferenceChild
+
+``` java
+private void updateAnchorInfoForLayout(RecyclerView.Recycler recycler, RecyclerView.State state,
+        AnchorInfo anchorInfo) {
+  	// 如果是根据 mPendingScrollPosition
+    if (updateAnchorFromPendingData(state, anchorInfo)) {                                       
+        if (DEBUG) {                                                                            
+            Log.d(TAG, "updated anchor info from pending information");                         
+        }                                                                                       
+        return;                                                                                 
+    }                                                                                           
+    // 如果是根据                                                                                             
+    if (updateAnchorFromChildren(recycler, state, anchorInfo)) {                                
+        if (DEBUG) {                                                                            
+            Log.d(TAG, "updated anchor info from existing children");                           
+        }                                                                                       
+        return;                                                                                 
+    }                                                                                           
+    if (DEBUG) {                                                                                
+        Log.d(TAG, "deciding anchor info for fresh state");                                     
+    }                                                                                           
+    anchorInfo.assignCoordinateFromPadding();                                                   
+    anchorInfo.mPosition = mStackFromEnd ? state.getItemCount() - 1 : 0;                        
+}                                                                                               
+```
+
+### updateAnchorFromPendingData
+
+``` java
+/**                                                                                          
+ * 如果存在 pending scroll position 或者 saved states, 根据它们更新锚点新鲜，然后返回 true。            
+ */                                                                                          
+private boolean updateAnchorFromPendingData(RecyclerView.State state, AnchorInfo anchorInfo) 
+    if (state.isPreLayout() || mPendingScrollPosition == NO_POSITION) {
+      	// 当前为 pre-layout 或者 不存在 pending scroll position 返回 false
+        return false;                                                                        
+    }                                                                                        
+    // validate scroll position                                                              
+    if (mPendingScrollPosition < 0 || mPendingScrollPosition >= state.getItemCount()) {      
+        mPendingScrollPosition = NO_POSITION;                                                
+        mPendingScrollPositionOffset = INVALID_OFFSET;                                       
+        if (DEBUG) {                                                                         
+            Log.e(TAG, "ignoring invalid scroll position " + mPendingScrollPosition);        
+        }                                                                                    
+        return false;                                                                        
+    }                                                                                        
+                                                                                             
+    // 如果 child 是可见的，那么尝试以它作为参考，并且确保它是完成可见的。
+    // 如果 child 是不可见的，那么和它的虚拟 position 对齐。
+
+    anchorInfo.mPosition = mPendingScrollPosition;
+	
+	// 存在 saved state
+    if (mPendingSavedState != null && mPendingSavedState.hasValidAnchor()) {                 
+        // 锚点的偏移依赖于 child 的位置，这里 我们根据 child view 的边界去更新。                                        
+        anchorInfo.mLayoutFromEnd = mPendingSavedState.mAnchorLayoutFromEnd;                 
+        if (anchorInfo.mLayoutFromEnd) {                                                     
+            anchorInfo.mCoordinate = mOrientationHelper.getEndAfterPadding()                 
+                    - mPendingSavedState.mAnchorOffset;                                      
+        } else {                                                                             
+            anchorInfo.mCoordinate = mOrientationHelper.getStartAfterPadding()               
+                    + mPendingSavedState.mAnchorOffset;                                      
+        }                                                                                    
+        return true;                                                                         
+    }                                                                                        
+             
+	//如果 mPendingScrollPositionOffset 是无效的位移，需要重新计算。
+    if (mPendingScrollPositionOffset == INVALID_OFFSET) {
+        View child = findViewByPosition(mPendingScrollPosition);                             
+        if (child != null) {
+          	// child 是可见的。
+          	// 获取当前 view 的占用空间，包括 decorations 和 margins。
+            final int childSize = mOrientationHelper.getDecoratedMeasurement(child);         
+            if (childSize > mOrientationHelper.getTotalSpace()) {                            
+                // item 不能适应。根据当前 layout 方向解决。                     
+                anchorInfo.assignCoordinateFromPadding();                                    
+                return true;                                                                 
+            }                                                                                
+            final int startGap = mOrientationHelper.getDecoratedStart(child)                 
+                    - mOrientationHelper.getStartAfterPadding();                             
+            if (startGap < 0) {
+              	// 当前 pending scroll position view 的 start 位置在不可见区域。
+                anchorInfo.mCoordinate = mOrientationHelper.getStartAfterPadding();          
+                anchorInfo.mLayoutFromEnd = false;                                           
+                return true;                                                                 
+            }                                                                                
+            final int endGap = mOrientationHelper.getEndAfterPadding()                       
+                    - mOrientationHelper.getDecoratedEnd(child);                             
+            if (endGap < 0) {
+              	// 当前 pending scroll position view 的 end 位置在不可见区域。
+                anchorInfo.mCoordinate = mOrientationHelper.getEndAfterPadding();            
+                anchorInfo.mLayoutFromEnd = true;                                            
+                return true;                                                                 
+            }                                                                                
+            anchorInfo.mCoordinate = anchorInfo.mLayoutFromEnd                               
+                    ? (mOrientationHelper.getDecoratedEnd(child) + mOrientationHelper        
+                    .getTotalSpaceChange())                                                  
+                    : mOrientationHelper.getDecoratedStart(child);                           
+        } else { // item is 不可见                                                    
+            if (getChildCount() > 0) {                                                       
+                // 获取第一个 view 的 positon                                
+                int pos = getPosition(getChildAt(0));
+              	// 根据 pending scroll position 和 当前 position，决定 layoutFromEnd
+                anchorInfo.mLayoutFromEnd = mPendingScrollPosition < pos                     
+                        == mShouldReverseLayout;                                             
+            }                                                                                
+            anchorInfo.assignCoordinateFromPadding();                                        
+        }                                                                                    
+        return true;                                                                         
+    }                                                                                        
+    // 覆盖 layout from end 的值，来保持一致。                                       
+    anchorInfo.mLayoutFromEnd = mShouldReverseLayout;                                        
+    // if this changes, we should update prepareForDrop as well                              
+    if (mShouldReverseLayout) {                                                              
+        anchorInfo.mCoordinate = mOrientationHelper.getEndAfterPadding()                     
+                - mPendingScrollPositionOffset;                                              
+    } else {                                                                                 
+        anchorInfo.mCoordinate = mOrientationHelper.getStartAfterPadding()                   
+                + mPendingScrollPositionOffset;                                              
+    }                                                                                        
+    return true;                                                                             
+}                                                                                            
+```
+
+### updateAnchorFromChildren
+
+``` java
+/**                                                                                             
+ * 在已存在的 views 中查找 锚点 view。大部分情况下，这个 view 是最接近 start 或者 end，并且有效 position 的（比如：还没删除）。                               
+ * <p>                                                                                          
+ * 拥有焦点的 child view 将优先。                                                  
+ */                                                                                             
+private boolean updateAnchorFromChildren(RecyclerView.Recycler recycler,                        
+        RecyclerView.State state, AnchorInfo anchorInfo) {                                      
+    if (getChildCount() == 0) {                                                                 
+        return false;                                                                           
+    }                                                                                           
+    final View focused = getFocusedChild();                                                     
+    if (focused != null && anchorInfo.isViewValidAsAnchor(focused, state)) {
+      	// 存在焦点 view,根据它，更新锚点信息。
+        anchorInfo.assignFromViewAndKeepVisibleRect(focused);                                   
+        return true;                                                                            
+    }                                                                                           
+    if (mLastStackFromEnd != mStackFromEnd) {                                                   
+        return false;                                                                           
+    }                                                                                           
+    View referenceChild = anchorInfo.mLayoutFromEnd                                             
+            ? findReferenceChildClosestToEnd(recycler, state)                                   
+            : findReferenceChildClosestToStart(recycler, state);                                
+    if (referenceChild != null) {                                                               
+        anchorInfo.assignFromView(referenceChild);                                              
+        // 如果所有可见的 views 一次性被删除，那么 reference child 可能是一个超出可见区域的 view。
+        // 在这种情况下，将锚点移动到可见区域。
+        if (!state.isPreLayout() && supportsPredictiveItemAnimations()) {                       
+            // 验证这个 child 是否部分可见，如果不是，移动到 start。 
+            final boolean notVisible =                                                          
+                    mOrientationHelper.getDecoratedStart(referenceChild) >= mOrientationHelper  
+                            .getEndAfterPadding()                                               
+                            || mOrientationHelper.getDecoratedEnd(referenceChild)               
+                            < mOrientationHelper.getStartAfterPadding();                        
+            if (notVisible) {                                                                   
+                anchorInfo.mCoordinate = anchorInfo.mLayoutFromEnd                              
+                        ? mOrientationHelper.getEndAfterPadding()                               
+                        : mOrientationHelper.getStartAfterPadding();                            
+            }                                                                                   
+        }                                                                                       
+        return true;                                                                            
+    }                                                                                           
+    return false;                                                                               
+}                                                                                               
+```
+
+### fill
+
 ``` java
 /**
 * 这是个有魔力的方法。根据定义的 layoutState 填充布局。这独立与 LinearLayoutManager 的其余部分，并且几乎没有变化，可以作为辅助类公开提供。 
@@ -736,6 +921,8 @@ int fill(RecyclerView.Recycler recycler, LayoutState layoutState,
     return start - layoutState.mAvailable;                                                     
 }                                                                                              
 ```
+
+### layoutChunk
 
 ``` java
 void layoutChunk(RecyclerView.Recycler recycler, RecyclerView.State state,                 
@@ -840,6 +1027,8 @@ View next(RecyclerView.Recycler recycler) {
 }                                                                                    
 ```
 
+### addViewInt
+
 ``` java
 private void addViewInt(View child, int index, boolean disappearing) {                      
     final ViewHolder holder = getChildViewHolderInt(child);                                 
@@ -894,5 +1083,71 @@ private void addViewInt(View child, int index, boolean disappearing) {
         lp.mPendingInvalidate = false;                                                      
     }                                                                                       
 }                                                                                           
+```
+
+### tryBindViewHolderByDeadline
+
+``` java
+/**                                                                                              
+ * 试图 bind view，并且考虑相关的时间信息。如果 deadlineNs != FOREVER_NS，那么这个方法可能会因为超时而 bind 出现错误，并且返回 false。                  
+ *                                                                                               
+ * @param holder Holder to be bound.                                                             
+ * @param offsetPosition Position of item to be bound.                                           
+ * @param position Pre-layout position of item to be bound.                                      
+ * @param deadlineNs Time, relative to getNanoTime(), by which bind/create work should           
+ *                   complete. If FOREVER_NS is passed, this method will not fail to             
+ *                   bind the holder.                                                            
+ * @return                                                                                       
+ */                                                                                              
+private boolean tryBindViewHolderByDeadline(ViewHolder holder, int offsetPosition,               
+        int position, long deadlineNs) {                                                         
+    holder.mOwnerRecyclerView = RecyclerView.this;                                               
+    final int viewType = holder.getItemViewType();                                               
+    long startBindNs = getNanoTime();                                                            
+    if (deadlineNs != FOREVER_NS                                                                 
+            && !mRecyclerPool.willBindInTime(viewType, startBindNs, deadlineNs)) {
+      	// 终止 - 不能满足 deadline。
+        // abort - we have a deadline we can't meet                                              
+        return false;                                                                            
+    }
+  	// 调用 Adapter.bindViewHoler
+    mAdapter.bindViewHolder(holder, offsetPosition);
+  	// 计算保存 bind 耗时
+    long endBindNs = getNanoTime();                                                              
+    mRecyclerPool.factorInBindTime(holder.getItemViewType(), endBindNs - startBindNs);           
+    attachAccessibilityDelegateOnBind(holder);                                                   
+    if (mState.isPreLayout()) {                                                                  
+        holder.mPreLayoutPosition = position;                                                    
+    }                                                                                            
+    return true;                                                                                 
+}                                                                                                
+```
+
+### bindViewHoler
+
+``` java
+/**
+ * 这个方法用于内部调用给定的 position 对应的 ViewHolder.onBindViewHolder 方法去更新 ViewHolder 的内容，同时一些给 RecyclerView 使用的私有字段。                                                                                    
+ * @see #onBindViewHolder(ViewHolder, int)                                                 
+ */                                                                                        
+public final void bindViewHolder(VH holder, int position) {                                
+    holder.mPosition = position;                                                           
+    if (hasStableIds()) {                                                                  
+        holder.mItemId = getItemId(position);                                              
+    }
+  	// 设置 FLAG_BOUND
+  	// 去除 FLAG_UPDATE，FLAG_INVALID，FLAG_ADAPTER_POSITION_UNKNOWN
+    holder.setFlags(ViewHolder.FLAG_BOUND,                                                 
+            ViewHolder.FLAG_BOUND | ViewHolder.FLAG_UPDATE | ViewHolder.FLAG_INVALID       
+                    | ViewHolder.FLAG_ADAPTER_POSITION_UNKNOWN);                           
+    TraceCompat.beginSection(TRACE_BIND_VIEW_TAG);                                         
+    onBindViewHolder(holder, position, holder.getUnmodifiedPayloads());                    
+    holder.clearPayload();                                                                 
+    final ViewGroup.LayoutParams layoutParams = holder.itemView.getLayoutParams();         
+    if (layoutParams instanceof RecyclerView.LayoutParams) {                               
+        ((LayoutParams) layoutParams).mInsetsDirty = true;                                 
+    }                                                                                      
+    TraceCompat.endSection();                                                              
+}                                                                                          
 ```
 
