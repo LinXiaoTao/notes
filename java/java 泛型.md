@@ -2,11 +2,11 @@
 
 Java SE5 发行版中增加了**泛型(Generic)**。
 
-声明中具有一个或者多个**类型参数(type parameter)**的类或者接口，就是泛型类或者接口。
+声明中具有一个或者多个**类型参数( type parameter )**的类或者接口，就是泛型类或者接口。
 
-每种泛型定义一组**参数化的类型(parameterized type)**。
+每种泛型定义一组**参数化的类型( parameterized type )**。
 
-每个泛型都定义一个**原生态类型(raw type)**，即不带任何实际类型参数的泛型名称。例如:List<String>对应的原生态类型是List。
+每个泛型都定义一个**原生态类型( raw type )**，即不带任何实际类型参数的泛型名称。例如:List<String>对应的原生态类型是List。
 
 泛型方法的定义:
 
@@ -31,7 +31,7 @@ Box<String> stringBox = new Box<>();
 
 #### Parameterized Types
 
-将`List<String>`称为参数化类型(Parameterized Types)。
+将 `List<String>` 称为参数化类型( Parameterized Types )。
 
 
 
@@ -132,9 +132,9 @@ interface B3
 
 ![img](https://docs.oracle.com/javase/tutorial/figures/java/generics-wildcardSubtyping.gif)
 
-5. 通配符捕获(Wildcard Capture)
+5. 通配符捕获( Wildcard Capture )
 
-   在某些情况下，编译器会推断通配符的类型。例如，列表可以被定义为List<?>，编译器从代码中推断出特定类型，这种情况称为**通配符捕获(Wildcard Capture)**。
+   在某些情况下，编译器会推断通配符的类型。例如，列表可以被定义为 List<?>，编译器从代码中推断出特定类型，这种情况称为**通配符捕获( Wildcard Capture )**。
 
    考虑下面的代码:
 
@@ -170,18 +170,18 @@ interface B3
    Integer integer = integers.get(0);//ture
    ```
 
-   使用通配符的参数化类型不能加入除了`null`之外的任何值，可以理解为**一定程度上的只读**，包括`Object`。但可以将值正确取出来。
+   使用通配符的参数化类型不能加入除了 `null` 之外的任何值，可以理解为**一定程度上的只读**，包括`Object`。但可以将值正确取出来。
 
 6. 通配符使用指南
 
-   **In**变量提供数据
+   **In **变量提供数据
 
-   **Out**变量保存数据
+   **Out **变量保存数据
 
-   1. 使用`extends`关键字，使用上边界通配符定义**In**变量
-   2. 使用`super`关键字，使用下边界通配符定义**Out**变量
-   3. **In**变量访问`Obejct`类方法，使用无界通配符
-   4. 变量既作为**In**，又作为**Out**，不使用通配符。
+   1. 使用 `extends` 关键字，使用上边界通配符定义 **In** 变量
+   2. 使用 `super` 关键字，使用下边界通配符定义 **Out** 变量
+   3. **In **变量访问 `Obejct` 类方法，使用无界通配符
+   4. 变量既作为 **In**，又作为 **Out**，不使用通配符。
 
    ​
 
@@ -205,9 +205,9 @@ interface B3
    ClassName.<String>method("Hello Java");
    ```
 
-2. 泛型类构造函数(Java SE 7)
+2. 泛型类构造函数( Java SE 7 )
 
-   泛型类也可以使用**类型推断**，只要编译器可以从上下文推断类型参数，就可以使用空的一组类型参数(**<>**)替换调用泛型构造函数所需的类型参数(Type Variable)。这对尖括号称为**the diamond**。
+   泛型类也可以使用**类型推断**，只要编译器可以从上下文推断类型参数，就可以使用空的一组类型参数(**<>**) 替换调用泛型构造函数所需的类型参数( Type Variable )。这对尖括号称为 **the diamond**。
 
    ``` java
    //不使用类型推断的构造函数
@@ -238,7 +238,7 @@ interface B3
      //process
    }
    //在Java SE7中这样调用会报错 "List<Object> cannot be converted to List<String>"
-   processStringList<Collections.emptyList());
+   processStringList(Collections.emptyList());
    //必须指定显示指定类型参数的值
    processStringList<Collections.<String>emptyList());
    ```
@@ -247,7 +247,7 @@ interface B3
 
    ``` java
    //Java SE8能正确推断方法参数的目标类型
-   processStringList<Collections.emptyList());
+   processStringList(Collections.emptyList());
    ```
 
 
@@ -280,15 +280,15 @@ numberBox.add(10.0);//ok
 
 #### 泛型的子类型(Subtyping)
 
-可以通过扩展(extends)或实现(implements)泛型类或泛型接口来作为泛型的子类型。
+可以通过扩展( extends )或实现( implements )泛型类或泛型接口来作为泛型的子类型。
 
-比如对于ArrayList<E>，它继承了List<E>，而List<E>继承了Collection<E>，所以ArrayList<String>是List<String>的子类型，也是Collection<String>的子类型，只要不改变类型参数的值(String)。
+比如对于ArrayList<E>，它继承了List<E>，而List<E>继承了Collection<E>，所以ArrayList<String>是List<String>的子类型，也是Collection<String>的子类型，只要不改变类型参数的值( String )。
 
 ![img](https://docs.oracle.com/javase/tutorial/figures/java/generics-sampleHierarchy.gif)
 
 #### 类型擦除
 
-Java中的泛型信息基本上都是在编译器这个层次来实现的。在生成的Java字节码中是不包含泛型中的类型信息的。使用泛型的时候加上的类型参数，会被编译器在编译的时候去掉。这个过程称为**类型擦除**。
+Java 中的泛型信息基本上都是在编译器这个层次来实现的。在生成的 Java 字节码中是不包含泛型中的类型信息的。使用泛型的时候加上的类型参数，会被编译器在编译的时候去掉。这个过程称为**类型擦除**。
 
 考虑下面的代码:
 
@@ -321,9 +321,9 @@ public class com/leo/generics/GenericTest {
 }
 ```
 
-可以看出在生成的字节码中，类型参数已经被擦除为`Object`。
+可以看出在生成的字节码中，类型参数已经被擦除为 `Object`。
 
-#### 桥接方法(Bridge Methods)
+#### 桥接方法( Bridge Methods )
 
 考虑下面代码:
 
@@ -348,9 +348,9 @@ public void setData(java.lang.Integer);
 
 所谓的可具体化类型，就是在整个运行时都可以知道其类型信息的类型，包括基本类型，非泛型类型，原始类型和调用的非有届通配符。
 
-不可具体化类型是指其类型信息在编译时被类型擦除机制擦除。我们无法在运行时知道一个不可具体化类型的所有信息。例如:`List<String>`和`List<Number>`，JVM在运行时无法分辨两者。
+不可具体化类型是指其类型信息在编译时被类型擦除机制擦除。我们无法在运行时知道一个不可具体化类型的所有信息。例如: `List<String>`和 `List<Number>`，JVM 在运行时无法分辨两者。
 
-#### 堆污染(Heap Pollution)
+#### 堆污染( Heap Pollution )
 
 当一个参数化类型变量引用了一个对象，而这个对象并非此变量的参数化类型时，堆污染就会发生。
 
@@ -368,9 +368,9 @@ public static void faultyMethod(List<String>... l) {
   }
 ```
 
-编译器会将可变参数方法，转换为一个数组。但我们知道的，**Java不能生成(new)参数化类型数组**。所以这里可以将`l`赋值给`Object[]`，可以会引起潜在的堆污染。
+编译器会将可变参数方法，转换为一个数组。但我们知道的，**Java 不能生成( new )参数化类型数组**。所以这里可以将`l`赋值给 `Object[]`，可以会引起潜在的堆污染。
 
-使用来自不可具体化形参的可变参数方法，会有一个堆污染的警告，如果你确保这些操作是安全的，可以使用`@SafeVarargs`屏蔽这些警告。
+使用来自不可具体化形参的可变参数方法，会有一个堆污染的警告，如果你确保这些操作是安全的，可以使用 `@SafeVarargs  `屏蔽这些警告。
 
 
 
