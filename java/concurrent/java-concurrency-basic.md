@@ -40,7 +40,7 @@ Java 语言 本身对 原子性、可见性以及有序性提供了哪些保证�
   >
   > Writes and reads of volatile `long` and `double` values are always atomic.
   >
-  > 写入或者读取 long 或 double 值总是原子性操作。
+  > 写入或者读取 volatile long 或 double 值总是原子性操作。
   >
   > Writes to and reads of references are always atomic, regardless of whether they are implemented as 32-bit or 64-bit values.
   >
