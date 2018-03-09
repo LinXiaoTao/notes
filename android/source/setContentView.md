@@ -2,23 +2,23 @@
 
 ### Window
 
-`Window`即窗口，这个概念在Android Framework中的实现为`android.view.Window`这个抽象类，这个抽象类是对Android系统中的窗口的抽象。
+`Window `即窗口，这个概念在 Android Framework 中的实现为 `android.view.Window` 这个抽象类，这个抽象类是对Android系统中的窗口的抽象。
 
-窗口是一个宏观的思想，它是屏幕上用于绘制各种UI元素及响应用户输入事件的一个矩形区域。
+窗口是一个宏观的思想，它是屏幕上用于绘制各种 UI 元素及响应用户输入事件的一个矩形区域。
 
 ### PhoneWindow
 
-`android.view.Window`这个抽象类可以看做Android中对窗口这一宏观概念所做的约定，而`PhoneWindow`这个类是Framework为我们提供的Android窗口概念的具体实现。
+`android.view.Window `这个抽象类可以看做Android中对窗口这一宏观概念所做的约定，而 `PhoneWindow` 这个类是 Framework 为我们提供的Android窗口概念的具体实现。
 
 ### DecorView
 
-`DecorView`是`PhoneWindow`的内部类，是`FrameLayout`的子类，是对`FrameLayout`进行功能的修饰（所以叫DecorXXX），是所有应用窗口的根View 。
+`DecorView `是 `PhoneWindow `的内部类，是 `FrameLayout` 的子类，是对 `FrameLayout` 进行功能的修饰（所以叫DecorXXX），是所有应用窗口的根 View 。
 
 ### setContentView
 
-从调用`Activity.setContentView`来梳理之间的关系。
+从调用 `Activity.setContentView` 来梳理之间的关系。
 
-对于继承`android.app.Activity`的Activity来说：
+对于继承 `android.app.Activity` 的 Activity 来说：
 
 ``` java
 //com.android.app.Activity
@@ -70,7 +70,7 @@ private void installDecor() {
             }
         }
         if (mContentParent == null) {
-           	//生成ContentParentView
+           	//生成 ContentParentView
             mContentParent = generateLayout(mDecor);
 
             // Set up decor part of UI to ignore fitsSystemWindows if appropriate.
